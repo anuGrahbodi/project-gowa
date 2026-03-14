@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kirim Pesan WA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <h2>📨 Formulir Kirim Pesan ke Grup</h2>
+    <div class="top-bar">
+        <div class="status-text">Status Bot WA: <strong><span id="statusText">Loading...</span></strong></div>
+        <button class="btn btn-red btn-sm" id="logoutBtn" onclick="doLogout()" style="display:none">🚪 Logout</button>
+    </div>
+    <div id="qrArea"></div>
+
+    <!-- LOGIN DENGAN NOMOR HP -->
+    <div id="phoneLoginArea" class="section" style="display:none; text-align:center; padding-bottom:15px;">
+        <h3 style="margin-bottom:8px;">🔑 Login dengan Nomor HP</h3>
+        <p class="hint">Alternatif jika QR Code bermasalah. Masukkan nomor WhatsApp Anda (dengan awalan 62).</p>
+        <div style="display:flex; justify-content:center; gap:8px; margin-top:10px;">
+            <input type="text" id="loginPhoneInput" placeholder="Contoh: 62812345678"
+                style="max-width:200px; text-align:center;" />
+            <button class="btn btn-blue" id="btnPair" onclick="requestPairingCode()">Dapatkan Kode</button>
+        </div>
+        <div id="pairingCodeResult"
+            style="display:none; margin-top:15px; background:#f4f4f5; padding:10px; border-radius:8px;">
+            <p style="margin:0; font-size:13px; color:#555;">Masukkan kode ini di menu <strong>Tautkan Perangkat >
+                    Tautkan dengan Nomor</strong> di HP Anda:</p>
+            <h2 id="pairingCodeText" style="margin:5px 0 0 0; letter-spacing:5px; color:#008b5e; font-size:32px;">...
+            </h2>
+        </div>
+    </div>
+
+    <!-- MODE PENGIRIMAN -->
+    <div class="section" style="padding-bottom:10px;">
+        <h3 style="margin-bottom:8px;">⚙️ Mode Pengiriman</h3>
+        <div style="display:flex; gap:20px; font-weight:600; font-size:15px;">
+            <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                <input type="radio" name="sendMode" value="grup" checked onchange="toggleSendMode()"
+                    style="accent-color:#008b5e; width:18px; height:18px;">
+                Kirim Grup (Default)
+            </label>
+            <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                <input type="radio" name="sendMode" value="pribadi" onchange="toggleSendMode()"
+                    style="accent-color:#0ea5e9; width:18px; height:18px;">
+                Kirim Pribadi (Japri)
+            </label>
+        </div>
+    </div>
+
+    <!-- TARGET TUJUAN (Hanya untuk Kirim Grup) -->
+    <div class="section" id="sectionTargetGrup">
+        <h3>🎯 Target Tujuan</h3>
+        <p class="hint">Masukkan ID grup atau nomor WA. Centang target yang ingin menerima pesan.</p>
+        <div class="target-input-row">
+            <input type="text" id="targetId" placeholder="ID Grup atau Nomor WA" />
+            <input type="text" id="targetLabel" placeholder="Label (opsional)" style="max-width:180px;" />
+            <button class="btn btn-green btn-sm" onclick="addTarget()">＋ Tambah</button>
+        </div>
+        <div class="select-all-row" id="selectAllRow" style="display:none;">
+            <label><input type="checkbox" id="selectAllTargets" onchange="toggleSelectAll()" checked> Pilih
+                Semua</label>
+        </div>
+        <div class="chips" id="targetChips"><span class="no-targets">Belum ada target.</span></div>
+    </div>
+
+    <!-- FORM PESAN -->
+    <div class="section">
+        <h3>✉️ Template Pesan</h3>
+        <p class="hint">Kirim Grup: Gunakan <strong>${namaVariabel}</strong> <br>Kirim Pribadi: Gunakan
+            <strong>++nama</strong> (atau kolom apa saja)
+        </p>
+        <textarea id="msgBox"></textarea>
+        <div style="display:flex;align-items:center;gap:16px;margin-top:10px;flex-wrap:wrap;">
+            <label
+                style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;font-weight:600;color:#555;">
+                <input type="checkbox" id="hideTagCheck" style="accent-color:#0ea5e9;width:18px;height:18px;"> 👻 Hide
+                Tag
+            </label>
+            <label
+                style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;font-weight:600;color:#555;">
+                <input type="checkbox" id="notisCheck" style="accent-color:#f59e0b;width:18px;height:18px;"> 📌 Notis
+            </label>
+            <span class="hint" style="margin:0;">Hide Tag = tag tersembunyi | Notis = tambah pesan kontak admin</span>
+        </div>
+
+        <!-- Pilihan Variabel untuk Kirim Pribadi -->
+        <div id="privateVarSelectArea"
+            style="display:none; margin-top:16px; padding:12px; background:#f8f9fa; border-radius:8px; border:1px solid #ddd;">
+            <label style="font-weight:600; font-size:14px; display:block; margin-bottom:6px;">Centang Variabel Tujuan
+                (Japri):</label>
+            <div id="privateVarCheckboxes"
+                style="max-height:150px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding:8px; background:#fff; border:1px solid #ccc; border-radius:4px;">
+                <!-- Checkboxes inject dari js -->
+            </div>
+            <p class="hint" style="margin-top:6px; margin-bottom:0;">Pesan akan dikirim satu per satu dengan jeda acak
+                (7 - 62 detik) menghindari blokir.</p>
+        </div>
+
+        <br>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-send" id="sendBtn" onclick="sendMsg()">🚀 Kirim Pesan</button>
+            <button class="btn btn-blue" id="scheduleBtn" onclick="openScheduleModal()">🕒 Kirim Berjadwal</button>
+            <button class="btn btn-purple" id="viewSchedulesBtn" onclick="openSchedulesList()">📅 Antrean (<span
+                    id="scheduleCount">0</span>)</button>
+            <button class="btn btn-red" id="stopBtn" onclick="stopPrivateSend()" style="display:none;">🛑
+                Berhenti</button>
+            <span id="sendInfo" style="font-size:13px;color:#64748b;font-weight:600;"></span>
+        </div>
+
+        <!-- Progress Bar Kirim Pribadi -->
+        <div id="privateProgressArea" style="display:none; margin-top:16px;">
+            <div
+                style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom:6px;">
+                <span id="privateProgressText">Mengirim: 0 / 0</span>
+                <span id="privateProgressTime" style="color:#f59e0b;">Menunggu...</span>
+            </div>
+            <div style="width:100%; height:12px; background:#e2e8f0; border-radius:6px; overflow:hidden;">
+                <div id="privateProgressBar"
+                    style="width:0%; height:100%; background:#0ea5e9; transition:width 0.3s ease;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARDS VARIABEL -->
+    <div class="section">
+        <h3>📋 Daftar Variabel</h3>
+        <div class="cards-grid" id="cardsGrid"></div>
+    </div>
+
+    <!-- ANGGOTA GRUP + BANDINGKAN -->
+    <div class="section">
+        <h3>👥 Anggota Grup</h3>
+        <div class="members-controls">
+            <select id="groupSelect">
+                <option value="">-- Pilih Grup --</option>
+            </select>
+            <button class="btn btn-blue btn-sm" onclick="loadMembers()">Tampilkan</button>
+            <button class="btn btn-purple btn-sm" onclick="toggleCompare()" id="compareToggleBtn">🔍 Bandingkan</button>
+            <span class="members-info" id="membersInfo"></span>
+        </div>
+
+        <!-- Compare panel (hidden by default) -->
+        <div class="compare-panel" id="comparePanel" style="display:none;">
+            <h4>🔍 Bandingkan Variabel dengan Anggota Grup</h4>
+            <p class="hint">Pilih variabel dan kolom yang ingin dibandingkan dengan kolom anggota grup.</p>
+
+            <div class="compare-row">
+                <label>Kolom Grup:</label>
+                <select id="cmpGroupCol">
+                    <option value="nomor">nomor</option>
+                    <option value="nama">nama</option>
+                </select>
+            </div>
+
+            <p style="font-weight:600;font-size:13px;margin:8px 0 4px;">Pilih Variabel:</p>
+            <div class="compare-checks" id="cmpVarChecks"></div>
+
+            <div id="cmpColSelectors"></div>
+
+            <button class="btn btn-purple btn-sm" onclick="runCompare()">▶️ Jalankan Perbandingan</button>
+            <div id="compareResults"></div>
+        </div>
+
+        <div id="membersArea">
+            <p class="hint" style="text-align:center;">Pilih grup lalu klik Tampilkan.</p>
+        </div>
+    </div>
+
+    <!-- MONITOR -->
+    <div class="section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h3 style="margin:0;">📩 Monitor Pesan Masuk</h3>
+            <div class="toggle-wrap">
+                <span class="toggle-label" id="monitorLabel">OFF</span>
+                <label class="toggle"><input type="checkbox" id="monitorToggle" onchange="toggleMonitor()"><span
+                        class="toggle-slider"></span></label>
+            </div>
+        </div>
+        <div class="monitor-box" id="monitorBox">
+            <div class="monitor-empty">Monitor mati. Klik toggle untuk menyalakan.</div>
+        </div>
+    </div>
+
+    <!-- Modal: View -->
+    <div class="overlay" id="viewOverlay" onclick="if(event.target===this)closeView()">
+        <div class="modal">
+            <button class="modal-x" onclick="closeView()">✕</button>
+            <h3 id="viewTitle"></h3>
+            <div id="viewBody"></div>
+            <div id="viewCode" class="code-preview" style="display:none"></div>
+            <div class="modal-actions">
+                <button class="btn-edit" onclick="openEdit()">✏️ Edit</button>
+                <button class="btn-del" onclick="delList()">🗑 Hapus</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal: Add -->
+    <div class="overlay" id="addOverlay" onclick="if(event.target===this)closeAdd()">
+        <div class="modal">
+            <button class="modal-x" onclick="closeAdd()">✕</button>
+            <h3>➕ Tambah Variabel Baru</h3>
+            <label>Nama Variabel</label><input type="text" id="addName" placeholder="contoh: listMedanSelatan" />
+            <label>Data CSV</label>
+            <p class="hint">Baris pertama = header. Contoh:<br><code>nama,nomor<br>robi,6289524210854</code></p>
+            <textarea id="addCSV" placeholder="nama,nomor&#10;robi,6289524210854&#10;bg abdi,6282363533971"></textarea>
+            <div id="addPreview" class="code-preview" style="display:none"></div><br>
+            <button class="btn-save" onclick="saveList()">💾 Simpan</button>
+        </div>
+    </div>
+    <!-- Modal: Edit -->
+    <div class="overlay" id="editOverlay" onclick="if(event.target===this)closeEdit()">
+        <div class="modal">
+            <button class="modal-x" onclick="closeEdit()">✕</button>
+            <h3 id="editTitle">✏️ Edit Variabel</h3>
+            <label>Nama Variabel</label><input type="text" id="editName" readonly style="background:#eee;" />
+            <label>Data CSV</label>
+            <p class="hint">Edit data lalu klik Simpan.</p>
+            <textarea id="editCSV"></textarea>
+            <div id="editPreview" class="code-preview" style="display:none"></div><br>
+            <button class="btn-save" onclick="saveEdit()">💾 Simpan Perubahan</button>
+        </div>
+    </div>
+
+    <!-- Modal: Schedule Date Time -->
+    <div class="overlay" id="scheduleOverlay" onclick="if(event.target===this)closeScheduleModal()">
+        <div class="modal">
+            <button class="modal-x" onclick="closeScheduleModal()">✕</button>
+            <h3>🕒 Atur Jadwal Pengiriman</h3>
+            <p class="hint">Pilih tanggal dan jam kapan pesan ini akan dikirim.</p>
+            <input type="datetime-local" id="scheduleDateTime"
+                style="width:100%; padding:10px; margin-top:10px; border-radius:6px; border:1px solid #ccc; font-size:16px;" />
+            <br><br>
+            <button class="btn-save" onclick="submitSchedule()">🕒 Buat Jadwal</button>
+        </div>
+    </div>
+
+    <!-- Modal: List Schedules -->
+    <div class="overlay" id="schedulesListOverlay" onclick="if(event.target===this)closeSchedulesList()">
+        <div class="modal" style="width: 700px; max-width: 95%;">
+            <button class="modal-x" onclick="closeSchedulesList()">✕</button>
+            <h3>📅 Antrean Pesan Terjadwal</h3>
+            <div id="schedulesListBody" style="margin-top:15px; max-height: 450px; overflow-y:auto; overflow-x:auto;">
+                <p>Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

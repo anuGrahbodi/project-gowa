@@ -1,0 +1,456 @@
+{
+  "kantorsem": [
+    {
+      "nama": "Dinda Ayuning Tyas BPJS",
+      "notelp": "6282323165533"
+    },
+    {
+      "nama": "Mathilda Kyara BPJS",
+      "notelp": "628974807193"
+    },
+    {
+      "nama": "Rhea Suci Agatha BPJS",
+      "notelp": "6281274646675"
+    },
+    {
+      "nama": "Anjeli Br.Manurung BPJS",
+      "notelp": "6281360061980"
+    },
+    {
+      "nama": "Tengku Shah Ariq Jaffar BPJS",
+      "notelp": "6282179921587"
+    },
+    {
+      "nama": "Fica Aurellia BPJS",
+      "notelp": "6282297505783"
+    },
+    {
+      "nama": "Bunga Qanitah Angkasa Ginting BPJS",
+      "notelp": "6281377203308"
+    },
+    {
+      "nama": "Dinda Anisa Putri BPJS",
+      "notelp": "6281262718837"
+    },
+    {
+      "nama": "Safira Mazaya Hasibuan BPJS",
+      "notelp": "6281312466900"
+    },
+    {
+      "nama": "Novitri Rehna Latersia Sebayang BPJS",
+      "notelp": "6285270991387"
+    },
+    {
+      "nama": "Grace Angelia S BPJS",
+      "notelp": "6281212909813"
+    },
+    {
+      "nama": "Siti Annisa Indira Achyar BPJS",
+      "notelp": "6281397211034"
+    },
+    {
+      "nama": "Mery Cristin Barus BPJS",
+      "notelp": "6282163494147"
+    },
+    {
+      "nama": "Esther Aprilia Sinaga BPJS",
+      "notelp": "6283150467835"
+    },
+    {
+      "nama": "Metha Alyona Alphonse Silalahi BPJS",
+      "notelp": "6285837907204"
+    },
+    {
+      "nama": "Prayer Ezekiel Levy Sitepu BPJS",
+      "notelp": "6285268104143"
+    },
+    {
+      "nama": "Jaysha Anbiya Harris BPJS",
+      "notelp": "6285262682137"
+    },
+    {
+      "nama": "Firman Karunia Naibaho BPJS",
+      "notelp": "6288746870173"
+    },
+    {
+      "nama": "Andreas Cristianto Sinaga BPJS",
+      "notelp": "6282272953096"
+    },
+    {
+      "nama": "Ivan Daniel Sihite BPJS",
+      "notelp": "6285360412543"
+    },
+    {
+      "nama": "Rangga Alif Fahreza BPJS",
+      "notelp": "6282267906008"
+    },
+    {
+      "nama": "Dafa Hibrizi BPJS",
+      "notelp": "6282163789229"
+    },
+    {
+      "nama": "Michael Pranata Tarigan BPJS",
+      "notelp": "62895425620487"
+    },
+    {
+      "nama": "Diva Syakirahana BPJS",
+      "notelp": "6287855445398"
+    },
+    {
+      "nama": "FIRMAN RAMADHANI YUSMA BPJS",
+      "notelp": "6282166294329"
+    },
+    {
+      "nama": "Aska Skata BPJS",
+      "notelp": "6285831285361"
+    },
+    {
+      "nama": "Jordi Lovein T. Sibero BPJS",
+      "notelp": "6282181422773"
+    },
+    {
+      "nama": "Michael Purba BPJS",
+      "notelp": "6281265114119"
+    },
+    {
+      "nama": "Wayne Fabel Charles Sirait BPJS",
+      "notelp": "6285189761166"
+    },
+    {
+      "nama": "Geri Nugraha Sitepu BPJS",
+      "notelp": "6285837021043"
+    },
+    {
+      "nama": "Elvan Yohanes Gultom BPJS",
+      "notelp": "6281396173602"
+    },
+    {
+      "nama": "Katherina Nasrani Barus BPJS",
+      "notelp": "6282143324259"
+    },
+    {
+      "nama": "Lauren Patricia Pardede BPJS",
+      "notelp": "6285763420383"
+    },
+    {
+      "nama": "Khairunnisa Siregar BPJS",
+      "notelp": "6289652253158"
+    },
+    {
+      "nama": "Arifan Lumban Gaol BPJS",
+      "notelp": "6281371200168"
+    },
+    {
+      "nama": "Rafie Hafiz Ginting BPJS",
+      "notelp": "6283856139714"
+    },
+    {
+      "nama": "Sakhilla Tzanicha BPJS",
+      "notelp": "6283133293483"
+    },
+    {
+      "nama": "Lince Br Aritonang BPJS",
+      "notelp": "6281992856344"
+    },
+    {
+      "nama": "Yazid Ilmi Ihsan BPJS",
+      "notelp": "6281360701357"
+    },
+    {
+      "nama": "Divya Neila Bulanda Sari BPJS",
+      "notelp": "6285260740144"
+    },
+    {
+      "nama": "Clara Anggita Br. Pasaribu BPJS",
+      "notelp": "6282171383423"
+    },
+    {
+      "nama": "Siti Maulidya Saadah Sukmanika BPJS",
+      "notelp": "6289502537523"
+    }
+  ],
+  "bpjsmedkotKantor": [
+    {
+      "nama": "Metha Alyona Alphonse Silalahi",
+      "nomor": "6285837907204"
+    },
+    {
+      "nama": "Dinda Ayuning Tyas",
+      "nomor": "6282323165533"
+    },
+    {
+      "nama": "Mathilda Kyara",
+      "nomor": "628974807193"
+    },
+    {
+      "nama": "Rhea Suci Agatha",
+      "nomor": "6281274646675"
+    },
+    {
+      "nama": "Anjeli Br.Manurung",
+      "nomor": "6281360061980"
+    },
+    {
+      "nama": "Tengku Shah Ariq Jaffar",
+      "nomor": "6282179921587"
+    },
+    {
+      "nama": "Fica Aurellia",
+      "nomor": "6282297505783"
+    },
+    {
+      "nama": "Bunga Qanitah Angkasa Ginting",
+      "nomor": "6281377203308"
+    },
+    {
+      "nama": "Dinda Anisa Putri",
+      "nomor": "6281262718837"
+    },
+    {
+      "nama": "Safira Mazaya Hasibuan",
+      "nomor": "6281312466900"
+    },
+    {
+      "nama": "Novitri Rehna Latersia Sebayang",
+      "nomor": "6285270991387"
+    },
+    {
+      "nama": "Grace Angelia S",
+      "nomor": "6281212909813"
+    },
+    {
+      "nama": "Siti Annisa Indira Achyar",
+      "nomor": "6281397211034"
+    },
+    {
+      "nama": "Mery Cristin Barus",
+      "nomor": "6282163494147"
+    },
+    {
+      "nama": "Esther Aprilia Sinaga",
+      "nomor": "6283150467835"
+    }
+  ],
+  "bpjsmedkotKantorIT": [
+    {
+      "nama": "Prayer Ezekiel Levy Sitepu",
+      "notelp": "6285268104143"
+    },
+    {
+      "nama": "Jaysha Anbiya Harris",
+      "notelp": "6285262682137"
+    },
+    {
+      "nama": "Firman Karunia Naibaho",
+      "notelp": "6288746870173"
+    },
+    {
+      "nama": "Andreas Cristianto Sinaga",
+      "notelp": "6282272953096"
+    },
+    {
+      "nama": "Ivan Daniel Sihite",
+      "notelp": "6285360412543"
+    },
+    {
+      "nama": "Rangga Alif Fahreza",
+      "notelp": "6282267906008"
+    },
+    {
+      "nama": "Dafa Hibrizi",
+      "notelp": "6282163789229"
+    },
+    {
+      "nama": "Michael Pranata Tarigan",
+      "notelp": "62895425620487"
+    },
+    {
+      "nama": "Diva Syakirahana",
+      "notelp": "6287855445398"
+    },
+    {
+      "nama": "FIRMAN RAMADHANI YUSMA",
+      "notelp": "6282166294329"
+    },
+    {
+      "nama": "Aska Skata",
+      "notelp": "6285831285361"
+    },
+    {
+      "nama": "Jordi Lovein T. Sibero",
+      "notelp": "6282181422773"
+    },
+    {
+      "nama": "Michael Purba",
+      "notelp": "6281265114119"
+    },
+    {
+      "nama": "Wayne Fabel Charles Sirait",
+      "notelp": "6285189761166"
+    },
+    {
+      "nama": "Geri Nugraha Sitepu",
+      "notelp": "6285837021043"
+    },
+    {
+      "nama": "Elvan Yohanes Gultom",
+      "notelp": "6281396173602"
+    },
+    {
+      "nama": "Katherina Nasrani Barus",
+      "notelp": "6282143324259"
+    },
+    {
+      "nama": "Lauren Patricia Pardede",
+      "notelp": "6285763420383"
+    },
+    {
+      "nama": "Khairunnisa Siregar",
+      "notelp": "6289652253158"
+    },
+    {
+      "nama": "Arifan Lumban Gaol",
+      "notelp": "6281371200168"
+    }
+  ],
+  "bpjstamoraKantor": [
+    {
+      "nama": "Rafie Hafiz Ginting",
+      "notelp": "6283856139714"
+    },
+    {
+      "nama": "Sakhilla Tzanicha",
+      "notelp": "6283133293483"
+    },
+    {
+      "nama": "Lince Br Aritonang",
+      "notelp": "6281992856344"
+    },
+    {
+      "nama": "Yazid Ilmi Ihsan",
+      "notelp": "6281360701357"
+    },
+    {
+      "nama": "Divya Neila Bulanda Sari",
+      "notelp": "6285260740144"
+    },
+    {
+      "nama": "Clara Anggita Br. Pasaribu",
+      "notelp": "6282171383423"
+    },
+    {
+      "nama": "Siti Maulidya Saadah Sukmanika",
+      "notelp": "6289502537523"
+    }
+  ],
+  "nug": [
+    {
+      "nama": "anugrah",
+      "nomor": "6282277431128"
+    }
+  ],
+  "tesnug": [
+    {
+      "nama": "Anugrah Syahputra Sibarani",
+      "nomor": "6282277431128"
+    },
+    {
+      "nama": "LL",
+      "nomor": "6281277263913"
+    }
+  ],
+  "tesbpjs": [
+    {
+      "nama": "angelie",
+      "nomor": "6281212909813",
+      "prodi": "Sosiologi"
+    },
+    {
+      "nama": "nisa",
+      "nomor": "6281397211034",
+      "prodi": "Psikologi"
+    }
+  ],
+  "mentorbgagar": [
+    {
+      "nama": "Elsa Melika Sari Sihite",
+      "nomor": "6281371815115"
+    },
+    {
+      "nama": "Togar Fransiskus Simbolon",
+      "nomor": "6282181994073"
+    },
+    {
+      "nama": "Deby Chintya",
+      "nomor": "6282277422359"
+    },
+    {
+      "nama": "Jesika Amelia Hutabarat",
+      "nomor": "6282363704638"
+    },
+    {
+      "nama": "Lidya Gabriela Daely",
+      "nomor": "6282274350440"
+    },
+    {
+      "nama": "Rebecca Merrie Zane Parsaulina Manalu",
+      "nomor": "6289615196030"
+    },
+    {
+      "nama": "Nova Tresya Insani Girsang",
+      "nomor": "6281265893933"
+    },
+    {
+      "nama": "Efriska br Bangun",
+      "nomor": "6281265177567"
+    },
+    {
+      "nama": "Yemima Putri Valentina",
+      "nomor": "6282241112039"
+    },
+    {
+      "nama": "Feby Alya Najwa Tarigan",
+      "nomor": "6281397346016"
+    },
+    {
+      "nama": "Familia Marshanda Hutabarat",
+      "nomor": "6281397337209"
+    },
+    {
+      "nama": "Johandi Rafael",
+      "nomor": "6285835303569"
+    },
+    {
+      "nama": "Romanna Indah S Hutapea",
+      "nomor": "6285384761336"
+    },
+    {
+      "nama": "Ibnu Fatiha",
+      "nomor": "62895411488636"
+    },
+    {
+      "nama": "Joice Helena Patricia Silaen",
+      "nomor": "6281396822455"
+    },
+    {
+      "nama": "Mirnawati Tambunan",
+      "nomor": "6282289153724"
+    },
+    {
+      "nama": "Sheilla Josana Br Sembiring",
+      "nomor": "6283827548128"
+    },
+    {
+      "nama": "Grace Eirene Tamba",
+      "nomor": "6282274479582"
+    },
+    {
+      "nama": "Cristina Mei Pasaribu",
+      "nomor": "6285282772858"
+    },
+    {
+      "nama": "Fatin Nur Rizkya",
+      "nomor": "6281366308973"
+    }
+  ]
+}
