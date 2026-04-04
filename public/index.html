@@ -233,10 +233,38 @@
         <div class="modal">
             <button class="modal-x" onclick="closeScheduleModal()">✕</button>
             <h3>🕒 Atur Jadwal Pengiriman</h3>
-            <p class="hint">Pilih tanggal dan jam kapan pesan ini akan dikirim.</p>
-            <input type="datetime-local" id="scheduleDateTime"
-                style="width:100%; padding:10px; margin-top:10px; border-radius:6px; border:1px solid #ccc; font-size:16px;" />
-            <br><br>
+            <p class="hint">Tentukan jenis jadwal pengiriman pesan Anda.</p>
+            
+            <div style="margin: 15px 0;">
+                <label style="cursor:pointer; font-weight:600; margin-right: 15px;">
+                    <input type="radio" name="scheduleType" value="once" checked onchange="toggleScheduleType()"> Sekali Kirim
+                </label>
+                <label style="cursor:pointer; font-weight:600;">
+                    <input type="radio" name="scheduleType" value="recurring" onchange="toggleScheduleType()"> Rutin / Berulang
+                </label>
+            </div>
+
+            <div id="scheduleOnceArea">
+                <p class="hint" style="margin-bottom:0px;">Pilih tanggal dan jam:</p>
+                <input type="datetime-local" id="scheduleDateTime"
+                    style="width:100%; padding:10px; margin-top:5px; border-radius:6px; border:1px solid #ccc; font-size:16px;" />
+            </div>
+
+            <div id="scheduleRecurringArea" style="display:none; text-align:left;">
+                <p class="hint" style="margin-bottom:5px;">Pilih Hari (bisa lebih dari satu):</p>
+                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 10px;" id="cronDaysContainer">
+                    <label><input type="checkbox" class="day-check" value="1" checked> Sen</label>
+                    <label><input type="checkbox" class="day-check" value="2" checked> Sel</label>
+                    <label><input type="checkbox" class="day-check" value="3" checked> Rab</label>
+                    <label><input type="checkbox" class="day-check" value="4" checked> Kam</label>
+                    <label><input type="checkbox" class="day-check" value="5" checked> Jum</label>
+                    <label><input type="checkbox" class="day-check" value="6"> Sab</label>
+                    <label><input type="checkbox" class="day-check" value="7"> Min</label>
+                </div>
+                <p class="hint" style="margin-bottom:5px;">Pilih Jam Pengiriman:</p>
+                <input type="time" id="scheduleCronTime" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc; font-size:16px;" />
+            </div>
+            <br>
             <button class="btn-save" onclick="submitSchedule()">🕒 Buat Jadwal</button>
         </div>
     </div>

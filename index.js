@@ -1,10 +1,56 @@
+require('dotenv').config();
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const nodemailer = require('nodemailer');
 
+async function sendLogoutAlert() {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+        console.log('⚠️ Email alert dilewati karena EMAIL_USER/EMAIL_PASS belum diatur di .env');
+        return;
+    }
+    const targetEmail = 'anugrahsahabatkita@gmail.com';
+    const publicUrl = process.env.PUBLIC_URL || 'http://localhost:3000';
+    
+    let transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    });
+
+    const mailOptions = {
+        from: `WhatsApp Bot Alert <${process.env.EMAIL_USER}>`,
+        to: targetEmail,
+        subject: '⚠️ Peringatan: Bot WhatsApp Terputus (Logout)',
+        html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                <h2 style="color: #e53e3e;">Bot WhatsApp Terputus (Logout)</h2>
+                <p>Halo,</p>
+                <p>Sistem mendeteksi bahwa Bot WhatsApp Anda telah keluar (logout) dari server. Jadwal pesan otomatis Anda mungkin akan gagal terkirim.</p>
+                <p>Silakan segera hubungkan kembali nomor WhatsApp Anda dengan menekan tombol Login di bawah ini dan memindai QR Code (atau via nomor HP).</p>
+                <br>
+                <a href="${publicUrl}" style="background-color: #3182ce; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Masuk ke Dashboard Bot</a>
+                <br><br>
+                <p>Jika tombol di atas tidak bekerja, silakan akses URL ini langsung: <a href="${publicUrl}">${publicUrl}</a></p>
+                <br>
+                <hr style="border:none; border-top:1px solid #eee; margin-top:30px;">
+                <p style="font-size:12px; color:#999;">Email ini diklaim dan dikirim secara otomatis oleh sistem keamanan WhatsApp Bot.</p>
+            </div>
+        `
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log('📧 Berhasil mengirim email peringatan logout ke:', targetEmail);
+    } catch (err) {
+        console.error('❌ Gagal mengirim email alert:', err.message);
+    }
+}
 const app = express();
 const port = 3000;
 
@@ -113,6 +159,7 @@ function createClient() {
         console.error('❌ Authentication failure:', msg);
         latestQrDataUrl = null;
         isReady = false;
+        sendLogoutAlert();
     });
 
     client.on('ready', () => {
@@ -125,6 +172,7 @@ function createClient() {
         console.log('🔌 Client disconnected:', reason);
         isReady = false;
         latestQrDataUrl = null;
+        sendLogoutAlert();
     });
 
     // Monitor pesan masuk
@@ -279,8 +327,25 @@ async function processSchedule(job) {
 setInterval(async () => {
     if (!isReady || !client) return;
     const now = Date.now();
+    const t = new Date();
+    // getDay() mengembalikan 0 (Minggu) sampai 6 (Sabtu). Kita konversi ke string
+    const currentDay = String(t.getDay() === 0 ? 7 : t.getDay()); // 1 (Senin) - 7 (Minggu) agar sesuai UI
+    const currentHM = t.getHours().toString().padStart(2, '0') + ':' + t.getMinutes().toString().padStart(2, '0');
+    const todayStr = t.toLocaleDateString('en-CA'); // format lokal seperti YYYY-MM-DD
+    
     // Get all schedules that are due and not marked as processing/done
-    const pendingJobs = schedules.filter(s => s.status === 'pending' && s.timeToProcess <= now);
+    const pendingJobs = schedules.filter(s => {
+        if (s.status !== 'pending') return false;
+        
+        if (s.scheduleType === 'recurring') {
+            if (!Array.isArray(s.cronDays) || !s.cronDays.includes(currentDay)) return false;
+            if (s.cronTime !== currentHM) return false;
+            if (s.lastRunDate === todayStr) return false;
+            return true;
+        } else {
+            return s.timeToProcess <= now;
+        }
+    });
     if (pendingJobs.length === 0) return;
 
     for (const job of pendingJobs) {
@@ -289,8 +354,16 @@ setInterval(async () => {
 
         await processSchedule(job);
 
-        // After finish, remove from schedules
-        schedules = schedules.filter(s => s.id !== job.id);
+        // After finish, mark logic based on type
+        if (job.scheduleType === 'recurring') {
+            const memJob = schedules.find(s => s.id === job.id);
+            if (memJob) {
+                memJob.status = 'pending';
+                memJob.lastRunDate = todayStr;
+            }
+        } else {
+            schedules = schedules.filter(s => s.id !== job.id);
+        }
         saveSchedules(schedules);
     }
 }, 10000); // Check every 10 seconds
@@ -333,16 +406,20 @@ app.get('/api/schedules', (req, res) => {
 });
 
 app.post('/api/schedules', (req, res) => {
-    const { time, payload, type } = req.body;
-    if (!time || !payload || !type) return res.status(400).json({ error: 'Data jadwal tidak lengkap' });
+    const { time, payload, type, scheduleType, cronDays, cronTime } = req.body;
+    if (!payload || !type) return res.status(400).json({ error: 'Data jadwal tidak lengkap' });
 
     const newSchedule = {
         id: Date.now().toString(),
-        timeToProcess: time,
+        scheduleType: scheduleType || 'once',
+        timeToProcess: time || 0,
+        cronDays: cronDays || [],
+        cronTime: cronTime || '',
         type: type, // 'grup' or 'pribadi'
         payload: payload,
         status: 'pending',
-        createdAt: new Date().toLocaleString('id-ID')
+        createdAt: new Date().toLocaleString('id-ID'),
+        lastRunDate: null
     };
 
     schedules.push(newSchedule);

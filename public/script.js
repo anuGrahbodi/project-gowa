@@ -576,11 +576,30 @@ function openScheduleModal() {
 }
 function closeScheduleModal() { document.getElementById('scheduleOverlay').classList.remove('show'); }
 
+function toggleScheduleType() {
+    const isRecurring = document.querySelector('input[name="scheduleType"][value="recurring"]').checked;
+    document.getElementById('scheduleOnceArea').style.display = isRecurring ? 'none' : 'block';
+    document.getElementById('scheduleRecurringArea').style.display = isRecurring ? 'block' : 'none';
+}
+
 async function submitSchedule() {
-    const timeVal = document.getElementById('scheduleDateTime').value;
-    if (!timeVal) { toast('Pilih waktu pengiriman!', 'err'); return; }
-    const timeToProcess = new Date(timeVal).getTime();
-    if (timeToProcess <= Date.now()) { toast('Waktu jadwal harus lebih dari sekarang!', 'err'); return; }
+    const isRecurring = document.querySelector('input[name="scheduleType"][value="recurring"]').checked;
+    const scheduleTypeVal = isRecurring ? 'recurring' : 'once';
+    
+    let timeToProcess = 0, cronDays = [], cronTime = '';
+    
+    if (!isRecurring) {
+        const timeVal = document.getElementById('scheduleDateTime').value;
+        if (!timeVal) { toast('Pilih waktu pengiriman!', 'err'); return; }
+        timeToProcess = new Date(timeVal).getTime();
+        if (timeToProcess <= Date.now()) { toast('Waktu jadwal harus lebih dari sekarang!', 'err'); return; }
+    } else {
+        const checkboxes = document.querySelectorAll('.day-check:checked');
+        checkboxes.forEach(cb => cronDays.push(cb.value));
+        if (cronDays.length === 0) { toast('Pilih minimal satu hari!', 'err'); return; }
+        cronTime = document.getElementById('scheduleCronTime').value;
+        if (!cronTime) { toast('Pilih jam pengiriman!', 'err'); return; }
+    }
 
     const isPrivate = document.querySelector('input[name="sendMode"][value="pribadi"]').checked;
     let baseMsg = document.getElementById('msgBox').value;
@@ -630,7 +649,14 @@ async function submitSchedule() {
         const r = await fetch('/api/schedules', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ time: timeToProcess, payload, type })
+            body: JSON.stringify({ 
+                time: timeToProcess, 
+                payload, 
+                type, 
+                scheduleType: scheduleTypeVal, 
+                cronDays, 
+                cronTime 
+            })
         });
         const d = await r.json();
         if (r.ok) {
@@ -657,14 +683,22 @@ async function openSchedulesList() {
             return;
         }
         let html = '<div class="members-table-wrap"><table><thead><tr><th>Dibuat</th><th>Jadwal</th><th>Tipe</th><th>Detail</th><th>Aksi</th></tr></thead><tbody>';
-        d.sort((a, b) => a.timeToProcess - b.timeToProcess).forEach(s => {
-            const dateStr = new Date(s.timeToProcess).toLocaleString('id-ID');
+        d.forEach(s => { // Sort won't accurately reflect both array types properly here for now, so removed sort to keep code neat
+            let dateStr = '';
+            if (s.scheduleType === 'recurring') {
+                const dayMap = {'1':'Sen','2':'Sel','3':'Rab','4':'Kam','5':'Jum','6':'Sab','7':'Min'};
+                const dNames = s.cronDays.map(x => dayMap[x]).join(', ');
+                dateStr = `<span style="color:#f59e0b;font-weight:600;">🔄 Rutin: Tiap ${dNames} (${s.cronTime})</span>`;
+            } else {
+                dateStr = `<span style="font-weight:600;color:#25d366">${new Date(s.timeToProcess).toLocaleString('id-ID')}</span>`;
+            }
+            
             let info = s.type === 'grup' ? `${s.payload.selectedTargets.length} grup/target` : `${s.payload.length} orang(japri)`;
             let msgPreview = s.type === 'grup' ? s.payload.message : s.payload[0].message;
             if (msgPreview.length > 30) msgPreview = msgPreview.substring(0, 30) + '...';
             html += `<tr>
                 <td style="font-size:12px;color:#666;">${s.createdAt || '-'}</td>
-                <td style="font-weight:600;color:#25d366">${dateStr}</td>
+                <td>${dateStr}</td>
                 <td><span class="badge-${s.type === 'grup' ? 'admin' : 'superadmin'}">${s.type}</span></td>
                 <td style="font-size:12px;">Ke: ${info}<br>Pesan: ${escHtml(msgPreview)}</td>
                 <td><button class="btn btn-red btn-sm" onclick="deleteSchedule('${s.id}')">Hapus</button></td>
