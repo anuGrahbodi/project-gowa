@@ -460,36 +460,28 @@ app.post('/api/login/pair', async (req, res) => {
 
         console.log('📱 Meminta pairing code untuk:', formattedPhone);
         
-        // SUNTIKKAN FUNGSI PENYELAMAT DARI NODEJS
-        global._interceptedPairingCode = null;
-        try {
-            await client.pupPage.exposeFunction('onCodeReceivedEvent', (c) => {
-                console.log('🔗 Intercepted via exposeFunction! KODE ASLI:', c);
-                global._interceptedPairingCode = c;
-            });
-        } catch (e) {
-            // Abaikan jika sudah diekspos sebelumnya
-        }
-
-        // TEMBAK LANGSUNG KE JANTUNG WA WEB (BYPASS LIBRARY)
-        console.log('🚀 Mengeksekusi pairingCode langsung di browser...');
-        await client.pupPage.evaluate((phoneNumber) => {
-            window.WWebJS.pairingCode(phoneNumber);
-        }, formattedPhone);
-        
-        // TUNGGU KODE SADAPAN MASUK
-        let code = null;
-        console.log('⏳ Menunggu hasil sadapan Node.js...');
-        for (let i = 0; i < 15; i++) {
-            if (global._interceptedPairingCode) {
-                code = global._interceptedPairingCode;
-                break;
+        // SUNTIKKAN FUNGSI PENYELAMAT DARI DALAM BROWSER
+        await client.pupPage.evaluate(() => {
+            if (!window._backupOnCode) {
+                window._backupOnCode = true;
+                const original = window.onCodeReceivedEvent;
+                window.onCodeReceivedEvent = function(code) {
+                    window.__SAFE_CODE_CAPTURE = code;
+                    if (original) original(code);
+                };
             }
-            await new Promise(r => setTimeout(r, 1000));
-        }
+        });
 
+        let code = await client.requestPairingCode(formattedPhone);
+        
+        // JIKA NULL/UNDEFINED, EKSTRAK PAKSA DARI BROWSER
         if (!code) {
-            throw new Error('Timeout: Menunggu kode dari WhatsApp terlalu lama.');
+             console.log('⚠️ Kode dari library kosong, mencoba mengambil paksa dari brankas browser...');
+             for (let i = 0; i < 15; i++) {
+                 code = await client.pupPage.evaluate(() => window.__SAFE_CODE_CAPTURE);
+                 if (code) break;
+                 await new Promise(r => setTimeout(r, 1000));
+             }
         }
         
         console.log('✅ KODE PAIRING BERHASIL DIDAPATKAN:', code);
