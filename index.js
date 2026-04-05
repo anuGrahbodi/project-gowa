@@ -158,6 +158,9 @@ function createClient() {
             type: 'remote',
             remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2409.2.html'
         },
+        pairWithPhoneNumber: {
+            phoneNumber: '' // Ini WAJIB agar whatsapp-web.js menyuntikkan onCodeReceivedEvent ke browser
+        },
         puppeteer: {
             // Ditambahkan optimasi untuk jalan di server (GCP/Linux tanpa GUI)
             headless: true,
