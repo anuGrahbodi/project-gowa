@@ -9,11 +9,12 @@ const nodemailer = require('nodemailer');
 const { exec } = require('child_process');
 
 async function sendLogoutAlert() {
-    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    let webhookUrl = process.env.DISCORD_WEBHOOK_URL;
     if (!webhookUrl) {
         console.log('⚠️ Discord alert dilewati karena DISCORD_WEBHOOK_URL belum diatur di .env');
         return;
     }
+    webhookUrl = webhookUrl.trim();
     
     const publicUrl = process.env.PUBLIC_URL || 'http://localhost:3000';
     
