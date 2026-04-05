@@ -18,9 +18,17 @@ async function fetchSchedulesCount() {
 }
 
 // ===== Status =====
+let initialLoginSync = false;
 async function fetchStatus() {
     try {
         const r = await fetch('/api/status'); const d = await r.json();
+        
+        // Sesuaikan toggle dengan state server saat pertama kali muat
+        if (!initialLoginSync && typeof d.phoneLoginMode !== 'undefined') {
+            switchLoginMode(d.phoneLoginMode ? 'phone' : 'qr');
+            initialLoginSync = true;
+        }
+
         const el = document.getElementById('statusText'), logoutBtn = document.getElementById('logoutBtn');
         const phoneArea = document.getElementById('phoneLoginArea');
         if (d.ready) {

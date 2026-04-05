@@ -777,6 +777,9 @@ app.post('/api/logout', async (req, res) => {
             }
         }
 
+        // Tembak notifikasi Discord jika di-logout manual dari web
+        sendLogoutAlert();
+
         isReady = false;
         latestQrDataUrl = null;
         monitorOn = false;
