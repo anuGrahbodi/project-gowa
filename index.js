@@ -434,6 +434,29 @@ app.delete('/api/schedules/:id', (req, res) => {
     res.json({ ok: true });
 });
 
+// Edit / Update schedule
+app.put('/api/schedules/:id', (req, res) => {
+    const id = req.params.id;
+    const idx = schedules.findIndex(s => s.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'Jadwal tidak ditemukan' });
+    const { message, scheduleType, time, cronDays, cronTime } = req.body;
+    const s = schedules[idx];
+    if (s.type === 'grup' && message !== undefined) {
+        s.payload.message = message;
+    } else if (s.type === 'pribadi' && message !== undefined && Array.isArray(s.payload)) {
+        s.payload = s.payload.map(p => ({ ...p, message }));
+    }
+    if (scheduleType) s.scheduleType = scheduleType;
+    if (scheduleType === 'once' && time) { s.timeToProcess = time; s.cronDays = []; s.cronTime = ''; }
+    if (scheduleType === 'recurring' && cronDays && cronTime) { s.cronDays = cronDays; s.cronTime = cronTime; s.timeToProcess = 0; }
+    s.status = 'pending';
+    s.lastRunDate = null;
+    schedules[idx] = s;
+    saveSchedules(schedules);
+    res.json({ ok: true });
+});
+
+
 // Get default message template
 app.get('/api/default-message', (req, res) => {
     res.json({ message: buildDefaultMessage() });

@@ -283,6 +283,48 @@
         </div>
     </div>
 
+    <!-- Modal: Edit Schedule -->
+    <div class="overlay" id="editScheduleOverlay" onclick="if(event.target===this)closeEditSchedule()">
+        <div class="modal" style="max-width:520px;">
+            <button class="modal-x" onclick="closeEditSchedule()">✕</button>
+            <h3>✏️ Edit Jadwal Pesan</h3>
+            <label style="font-weight:600;font-size:14px;display:block;margin-bottom:6px;">Pesan:</label>
+            <textarea id="editSchedMsg" style="width:100%;min-height:100px;"></textarea>
+
+            <label style="font-weight:600;font-size:14px;display:block;margin:12px 0 6px;">Tipe Jadwal:</label>
+            <div style="display:flex;gap:20px;margin-bottom:10px;">
+                <label style="cursor:pointer;font-weight:600;">
+                    <input type="radio" name="editSchedType" value="once" onchange="toggleEditScheduleType()" checked> Sekali Kirim
+                </label>
+                <label style="cursor:pointer;font-weight:600;">
+                    <input type="radio" name="editSchedType" value="recurring" onchange="toggleEditScheduleType()"> Rutin / Berulang
+                </label>
+            </div>
+
+            <div id="editSchedOnceArea">
+                <p class="hint" style="margin-bottom:4px;">Tanggal & Jam:</p>
+                <input type="datetime-local" id="editSchedDateTime" style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;font-size:15px;" />
+            </div>
+
+            <div id="editSchedRecurringArea" style="display:none;">
+                <p class="hint" style="margin-bottom:5px;">Pilih Hari:</p>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                    <label><input type="checkbox" class="edit-day-check" value="1" checked> Sen</label>
+                    <label><input type="checkbox" class="edit-day-check" value="2" checked> Sel</label>
+                    <label><input type="checkbox" class="edit-day-check" value="3" checked> Rab</label>
+                    <label><input type="checkbox" class="edit-day-check" value="4" checked> Kam</label>
+                    <label><input type="checkbox" class="edit-day-check" value="5" checked> Jum</label>
+                    <label><input type="checkbox" class="edit-day-check" value="6"> Sab</label>
+                    <label><input type="checkbox" class="edit-day-check" value="7"> Min</label>
+                </div>
+                <p class="hint" style="margin-bottom:5px;">Jam Pengiriman:</p>
+                <input type="time" id="editSchedCronTime" style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;font-size:15px;" />
+            </div>
+            <br>
+            <button class="btn-save" id="editSchedSaveBtn" onclick="saveEditSchedule()">💾 Simpan Perubahan</button>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 

@@ -701,7 +701,10 @@ async function openSchedulesList() {
                 <td>${dateStr}</td>
                 <td><span class="badge-${s.type === 'grup' ? 'admin' : 'superadmin'}">${s.type}</span></td>
                 <td style="font-size:12px;">Ke: ${info}<br>Pesan: ${escHtml(msgPreview)}</td>
-                <td><button class="btn btn-red btn-sm" onclick="deleteSchedule('${s.id}')">Hapus</button></td>
+                <td style="display:flex;gap:6px;">
+                    <button class="btn btn-blue btn-sm" onclick="openEditSchedule('${s.id}')">✏️ Edit</button>
+                    <button class="btn btn-red btn-sm" onclick="deleteSchedule('${s.id}')">🗑 Hapus</button>
+                </td>
             </tr>`;
         });
         html += '</tbody></table></div>';
@@ -721,6 +724,82 @@ async function deleteSchedule(id) {
             openSchedulesList();
         } else toast('Gagal membatalkan jadwal', 'err');
     } catch (e) { toast('Error: ' + e.message, 'err'); }
+}
+
+let editingScheduleId = null;
+async function openEditSchedule(id) {
+    // Fetch latest schedules
+    const r = await fetch('/api/schedules');
+    const all = await r.json();
+    const s = all.find(x => x.id === id);
+    if (!s) { toast('Jadwal tidak ditemukan', 'err'); return; }
+    editingScheduleId = id;
+
+    // Populate message
+    let msg = s.type === 'grup' ? s.payload.message : (s.payload[0] ? s.payload[0].message : '');
+    document.getElementById('editSchedMsg').value = msg;
+
+    // Populate schedule type
+    const isRecurring = s.scheduleType === 'recurring';
+    document.querySelector(`input[name="editSchedType"][value="${s.scheduleType}"]`).checked = true;
+    document.getElementById('editSchedOnceArea').style.display = isRecurring ? 'none' : 'block';
+    document.getElementById('editSchedRecurringArea').style.display = isRecurring ? 'block' : 'none';
+
+    if (!isRecurring && s.timeToProcess) {
+        // Format for datetime-local
+        const dt = new Date(s.timeToProcess);
+        const pad = n => String(n).padStart(2, '0');
+        document.getElementById('editSchedDateTime').value = `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+    }
+    if (isRecurring) {
+        document.getElementById('editSchedCronTime').value = s.cronTime || '';
+        document.querySelectorAll('.edit-day-check').forEach(cb => {
+            cb.checked = s.cronDays && s.cronDays.includes(cb.value);
+        });
+    }
+
+    document.getElementById('editScheduleOverlay').classList.add('show');
+}
+function closeEditSchedule() { document.getElementById('editScheduleOverlay').classList.remove('show'); editingScheduleId = null; }
+function toggleEditScheduleType() {
+    const isRecurring = document.querySelector('input[name="editSchedType"][value="recurring"]').checked;
+    document.getElementById('editSchedOnceArea').style.display = isRecurring ? 'none' : 'block';
+    document.getElementById('editSchedRecurringArea').style.display = isRecurring ? 'block' : 'none';
+}
+async function saveEditSchedule() {
+    if (!editingScheduleId) return;
+    const message = document.getElementById('editSchedMsg').value;
+    const isRecurring = document.querySelector('input[name="editSchedType"][value="recurring"]').checked;
+    const scheduleType = isRecurring ? 'recurring' : 'once';
+    let body = { message, scheduleType };
+    if (!isRecurring) {
+        const timeVal = document.getElementById('editSchedDateTime').value;
+        if (!timeVal) { toast('Pilih waktu!', 'err'); return; }
+        body.time = new Date(timeVal).getTime();
+    } else {
+        const cronDays = [];
+        document.querySelectorAll('.edit-day-check:checked').forEach(cb => cronDays.push(cb.value));
+        if (cronDays.length === 0) { toast('Pilih minimal satu hari!', 'err'); return; }
+        const cronTime = document.getElementById('editSchedCronTime').value;
+        if (!cronTime) { toast('Pilih jam!', 'err'); return; }
+        body.cronDays = cronDays;
+        body.cronTime = cronTime;
+    }
+    const btn = document.getElementById('editSchedSaveBtn');
+    btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
+    try {
+        const r = await fetch('/api/schedules/' + editingScheduleId, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (r.ok) {
+            toast('✅ Jadwal berhasil diperbarui!', 'ok');
+            closeEditSchedule();
+            openSchedulesList();
+        } else { const d = await r.json(); toast(d.error || 'Gagal', 'err'); }
+    } catch (e) { toast('Error: ' + e.message, 'err'); }
+    btn.disabled = false; btn.textContent = '💾 Simpan Perubahan';
 }
 
 // ===== Helpers =====
