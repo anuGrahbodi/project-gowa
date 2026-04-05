@@ -415,10 +415,12 @@ function switchLoginMode(mode) {
     const phonePanel = document.getElementById('loginPanelPhone');
     const qrBtn = document.getElementById('toggleQrBtn');
     const phoneBtn = document.getElementById('togglePhoneBtn');
+    const qrArea = document.getElementById('qrArea');
 
     if (mode === 'qr') {
         qrPanel.style.display = 'block';
         phonePanel.style.display = 'none';
+        qrArea.style.display = 'block'; // Tampilkan kembali QR
         qrBtn.style.background = '#008b5e';
         qrBtn.style.color = 'white';
         phoneBtn.style.background = '#f1f5f9';
@@ -426,6 +428,7 @@ function switchLoginMode(mode) {
     } else {
         qrPanel.style.display = 'none';
         phonePanel.style.display = 'block';
+        qrArea.style.display = 'none'; // Sembunyikan QR agar tidak konflik
         phoneBtn.style.background = '#0ea5e9';
         phoneBtn.style.color = 'white';
         qrBtn.style.background = '#f1f5f9';
