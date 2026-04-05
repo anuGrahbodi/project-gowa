@@ -126,6 +126,10 @@ let incomingMessages = []; // buffer pesan masuk (max 100)
 function createClient() {
     client = new Client({
         authStrategy: new LocalAuth(),
+        webVersionCache: {
+            type: 'remote',
+            remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1023151055-alpha.html'
+        },
         puppeteer: {
             // Ditambahkan optimasi untuk jalan di server (GCP/Linux tanpa GUI)
             headless: true,
