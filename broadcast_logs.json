@@ -1,0 +1,248 @@
+[
+  {
+    "id": "BCAST-1777017940",
+    "timestamp": "2026-04-24T15:05:40+07:00",
+    "total": 3,
+    "success": 0,
+    "failed": 0,
+    "details": [
+      {
+        "target": "6281397211034",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285270991387",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6286911233290",
+        "status": "failed",
+        "message": "Nomor tidak terdaftar di WhatsApp"
+      }
+    ]
+  },
+  {
+    "id": "BCAST-1777017176",
+    "timestamp": "2026-04-24T14:52:56+07:00",
+    "total": 3,
+    "success": 0,
+    "failed": 0,
+    "details": [
+      {
+        "target": "6281397211034",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285270991387",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6286911233290",
+        "status": "success",
+        "message": "Terkirim"
+      }
+    ]
+  },
+  {
+    "id": "BCAST-1777016942",
+    "timestamp": "2026-04-24T14:49:02+07:00",
+    "total": 3,
+    "success": 0,
+    "failed": 0,
+    "details": [
+      {
+        "target": "6281397211034",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285270991387",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6286911233290",
+        "status": "success",
+        "message": "Terkirim"
+      }
+    ]
+  },
+  {
+    "id": "BCAST-1777016669",
+    "timestamp": "2026-04-24T14:44:29+07:00",
+    "total": 4,
+    "success": 0,
+    "failed": 0,
+    "details": [
+      {
+        "target": "6281397211034",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285270991387",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6286911233290",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6281274646675",
+        "status": "success",
+        "message": "Terkirim"
+      }
+    ]
+  },
+  {
+    "id": "BCAST-1777016565",
+    "timestamp": "2026-04-24T14:42:45+07:00",
+    "total": 4,
+    "success": 0,
+    "failed": 0,
+    "details": [
+      {
+        "target": "6281397211034",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285270991387",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285211233290",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6281274646675",
+        "status": "success",
+        "message": "Terkirim"
+      }
+    ]
+  },
+  {
+    "id": "BCAST-1777016435",
+    "timestamp": "2026-04-24T14:40:35+07:00",
+    "total": 4,
+    "success": 0,
+    "failed": 0,
+    "details": [
+      {
+        "target": "6281397211034",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285270991387",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285211233290",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6281274646675",
+        "status": "success",
+        "message": "Terkirim"
+      }
+    ]
+  },
+  {
+    "id": "BCAST-1777015997",
+    "timestamp": "2026-04-24T14:33:17+07:00",
+    "total": 4,
+    "success": 0,
+    "failed": 0,
+    "details": [
+      {
+        "target": "6281397211034",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285270991387",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285211233290",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6281274646675",
+        "status": "success",
+        "message": "Terkirim"
+      }
+    ]
+  },
+  {
+    "id": "BCAST-1777015744",
+    "timestamp": "2026-04-24T14:29:04+07:00",
+    "total": 4,
+    "success": 0,
+    "failed": 0,
+    "details": [
+      {
+        "target": "6281397211034",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285270991387",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285211233290",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6281274646675",
+        "status": "success",
+        "message": "Terkirim"
+      }
+    ]
+  },
+  {
+    "id": "BCAST-1777015734",
+    "timestamp": "2026-04-24T14:28:54+07:00",
+    "total": 4,
+    "success": 0,
+    "failed": 0,
+    "details": [
+      {
+        "target": "6281397211034",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285270991387",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6285211233290",
+        "status": "success",
+        "message": "Terkirim"
+      },
+      {
+        "target": "6281274646675",
+        "status": "success",
+        "message": "Terkirim"
+      }
+    ]
+  }
+]

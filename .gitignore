@@ -1,6 +1,23 @@
-node_modules/
+# Database WhatsApp (jangan di-push, berisi sesi login pribadi)
+*.db
+wastore_*.db
+
+# File data runtime (berisi nomor HP & PIN user)
+users.json
+sessions.json
+
+# Log & temp
+*.log
+scratch/
+deploy/wa_project.tar.gz
+
+# Build output
+wabot
+gowhatsappweb.exe
+
+# Environment variables (jika ada)
 .env
-.wwebjs_auth/
-.wwebjs_cache/
-schedules.json
-lists.json
+
+# IDE
+.vscode/
+.idea/

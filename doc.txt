@@ -1,0 +1,8 @@
+package sqlstore // import "go.mau.fi/whatsmeow/store/sqlstore"
+
+func (c *Container) GetFirstDevice(ctx context.Context) (*store.Device, error)
+    GetFirstDevice is a convenience method for getting the first device in
+    the store. If there are no devices, then a new device will be created.
+    You should only use this if you don't want to have multiple sessions
+    simultaneously.
+

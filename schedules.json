@@ -1,0 +1,37 @@
+[
+  {
+    "id": "1777017916868",
+    "scheduleType": "once",
+    "timeToProcess": 1777017916868,
+    "cronDays": null,
+    "cronTime": "",
+    "type": "excel_broadcast",
+    "payload": {
+      "items": [
+        {
+          "target": "81397211034",
+          "message": "*HALLO PESERTA BPJS KETENAGAKERJAAN*\n\nTerimakasih Bapak/Ibu MUNTASIR telah menjadi peserta BPJS Ketenagakerjaan Program BPU selama pengajuan KUR,\nsaat ini kepesertaan Bapak/Ibu telah berakhir pada : 2026-03-17\nUntuk memastikan perlindungan jaminan sosial ketenagakerjaan tetap aktif, maka SEGERA melakukan pembayaran iuran dengan menggunakan Nomor KTP 1107072304910001 sebagai kode bayar Melalui :\nATM, Mobile Banking, Agen Brilink, POS, Alfamart ,Indomaret, Shopee, Dana dan kanal bayar lainnya.\n\nKerja Aman Dengan Perlindungan dari BPJS Ketenagakerjaan.\n\nInformasi program dan cara pembayaran dapat mengunjungi website https://www.bpjsketenagakerjaan.go.id/"
+        },
+        {
+          "target": "85270991387",
+          "message": "*HALLO PESERTA BPJS KETENAGAKERJAAN*\n\nTerimakasih Bapak/Ibu SITI MASITHAH telah menjadi peserta BPJS Ketenagakerjaan Program BPU selama pengajuan KUR,\nsaat ini kepesertaan Bapak/Ibu telah berakhir pada : 2026-03-12\nUntuk memastikan perlindungan jaminan sosial ketenagakerjaan tetap aktif, maka SEGERA melakukan pembayaran iuran dengan menggunakan Nomor KTP 1271016203950003 sebagai kode bayar Melalui :\nATM, Mobile Banking, Agen Brilink, POS, Alfamart ,Indomaret, Shopee, Dana dan kanal bayar lainnya.\n\nKerja Aman Dengan Perlindungan dari BPJS Ketenagakerjaan.\n\nInformasi program dan cara pembayaran dapat mengunjungi website https://www.bpjsketenagakerjaan.go.id/"
+        },
+        {
+          "target": "86911233290",
+          "message": "*HALLO PESERTA BPJS KETENAGAKERJAAN*\n\nTerimakasih Bapak/Ibu ANWAR EFENDI telah menjadi peserta BPJS Ketenagakerjaan Program BPU selama pengajuan KUR,\nsaat ini kepesertaan Bapak/Ibu telah berakhir pada : 2026-02-24\nUntuk memastikan perlindungan jaminan sosial ketenagakerjaan tetap aktif, maka SEGERA melakukan pembayaran iuran dengan menggunakan Nomor KTP 1271030304650001 sebagai kode bayar Melalui :\nATM, Mobile Banking, Agen Brilink, POS, Alfamart ,Indomaret, Shopee, Dana dan kanal bayar lainnya.\n\nKerja Aman Dengan Perlindungan dari BPJS Ketenagakerjaan.\n\nInformasi program dan cara pembayaran dapat mengunjungi website https://www.bpjsketenagakerjaan.go.id/"
+        }
+      ],
+      "maxDelay": 15,
+      "minDelay": 5,
+      "sessionPhone": "6283898649647",
+      "userName": "bpjstk47"
+    },
+    "status": "completed",
+    "createdAt": "24/4/2026 15:05:16",
+    "lastRunDate": null,
+    "totalTargets": 3,
+    "sentCount": 2,
+    "failedCount": 1,
+    "currentTarget": "Selesai"
+  }
+]

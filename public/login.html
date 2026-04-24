@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — WA Bot Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0f1117;
+            --card: #1a1d27;
+            --card2: #22263a;
+            --green: #25d366;
+            --blue: #0ea5e9;
+            --red: #ef4444;
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --border: rgba(255,255,255,0.07);
+            --input-bg: rgba(255,255,255,0.05);
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        
+        .mode-tabs { display: flex; background: var(--input-bg); border-radius: 12px; padding: 4px; margin-bottom: 20px; }
+        .mode-tab { flex: 1; padding: 10px; border: none; border-radius: 9px; cursor: pointer; background: transparent; color: var(--muted); font-weight: 600; font-family: inherit; }
+        .mode-tab.active { background: var(--card2); color: var(--text); }
+        
+        .panel { display: none; }
+        .panel.active { display: block; }
+        
+        .field-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600;}
+        .field-input { width: 100%; padding: 12px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); margin-bottom: 16px; font-family: inherit; }
+        .field-input:focus { border-color: var(--blue); outline: none; }
+        
+        /* PIN dots */
+        .pin-display { display: flex; justify-content: center; gap: 14px; margin-bottom: 20px; margin-top:10px; }
+        .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #374151; }
+        .pin-dot.filled { background: var(--green); border-color: var(--green); transform: scale(1.15); }
+        .pin-dot.error { background: var(--red); border-color: var(--red); }
+        
+        /* Numpad */
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+        .num-btn { padding: 14px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; color: white; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+        .num-btn:active { transform: scale(0.95); }
+        .num-btn.del { font-size: 20px; }
+        .num-btn.empty { visibility: hidden; }
+
+        .btn-full { width: 100%; padding: 14px; border: none; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; margin-bottom: 10px; font-family: inherit; }
+        .btn-primary { background: var(--green); color: white; }
+        .btn-danger { background: var(--red); color: white; }
+        .btn-secondary { background: var(--input-bg); color: white; border: 1px solid var(--border); }
+        .btn-full:disabled { opacity: 0.5; pointer-events: none; }
+
+        .status-msg { text-align: center; font-size: 13px; font-weight: 600; padding: 10px; border-radius: 8px; margin-bottom: 14px; display: none; }
+        .status-msg.err { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); display: block; }
+        .status-msg.ok { background: rgba(37,211,102,0.1); color: var(--green); border: 1px solid rgba(37,211,102,0.2); display: block; }
+        .status-msg.warn { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); display: block; }
+
+        .attempts-row { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+        .attempt-dot { width: 8px; height: 8px; border-radius: 50%; background: #374151; }
+        .attempt-dot.used { background: var(--red); }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2 style="text-align:center; color:white; margin-bottom: 4px;">WhatsApp Bot</h2>
+        <p style="text-align:center; color:var(--muted); font-size:13px; margin-bottom: 20px;">Selamat datang di Dashboard</p>
+
+        <div class="mode-tabs">
+            <button class="mode-tab active" id="tab-login" onclick="setMode('login')">Masuk</button>
+            <button class="mode-tab" id="tab-register" onclick="setMode('register')">Daftar</button>
+            <button class="mode-tab" id="tab-reset" onclick="setMode('reset')">Reset PIN</button>
+        </div>
+
+        <div id="mainStatus" class="status-msg"></div>
+
+        <!-- LOGIN / REGISTER PANEL -->
+        <div id="panel-main" class="panel active">
+            <div id="registerFields" style="display:none;">
+                <label class="field-label">Nama Anda</label>
+                <input type="text" id="regName" class="field-input" placeholder="Contoh: Anugrah">
+            </div>
+
+            <label class="field-label">Nomor WhatsApp</label>
+            <input type="tel" id="userPhone" class="field-input" placeholder="Contoh: 6281234567890">
+
+            <label class="field-label" style="text-align:center; margin-top:10px;">Masukkan PIN (6 Digit)</label>
+            <div class="pin-display">
+                <div class="pin-dot" id="dot0"></div><div class="pin-dot" id="dot1"></div><div class="pin-dot" id="dot2"></div>
+                <div class="pin-dot" id="dot3"></div><div class="pin-dot" id="dot4"></div><div class="pin-dot" id="dot5"></div>
+            </div>
+
+            <div class="numpad">
+                <button class="num-btn" onclick="pressNum('1')">1</button>
+                <button class="num-btn" onclick="pressNum('2')">2</button>
+                <button class="num-btn" onclick="pressNum('3')">3</button>
+                <button class="num-btn" onclick="pressNum('4')">4</button>
+                <button class="num-btn" onclick="pressNum('5')">5</button>
+                <button class="num-btn" onclick="pressNum('6')">6</button>
+                <button class="num-btn" onclick="pressNum('7')">7</button>
+                <button class="num-btn" onclick="pressNum('8')">8</button>
+                <button class="num-btn" onclick="pressNum('9')">9</button>
+                <button class="num-btn enter" onclick="enterBtn()" style="background:var(--blue); color:white;">✓</button>
+                <button class="num-btn" onclick="pressNum('0')">0</button>
+                <button class="num-btn del" onclick="pressDel()">⌫</button>
+            </div>
+
+            <div class="attempts-row" id="attemptsRow" style="margin-bottom:10px;">
+                <div class="attempt-dot" id="a0"></div><div class="attempt-dot" id="a1"></div><div class="attempt-dot" id="a2"></div>
+                <div class="attempt-dot" id="a3"></div><div class="attempt-dot" id="a4"></div>
+            </div>
+        </div>
+
+        <!-- RESET PIN PANEL -->
+        <div id="panel-reset" class="panel">
+            <div id="requestResetStep">
+                <p style="color:var(--muted); font-size:12px; margin-bottom:16px;">Masukkan Nomor WhatsApp untuk meminta OTP reset PIN.</p>
+                <label class="field-label">Nomor WhatsApp Anda</label>
+                <input type="tel" id="resetPhoneReq" class="field-input" placeholder="628xxx">
+                <button class="btn-full btn-primary" onclick="requestResetPin()">Minta Reset PIN</button>
+            </div>
+
+            <div id="submitResetStep" style="display:none;">
+                <p style="color:var(--muted); font-size:12px; margin-bottom:16px;">Masukkan OTP 8-digit yang telah dikirim ke Email / Discord.</p>
+                
+                <input type="hidden" id="resetPhone">
+
+                <label class="field-label">Kode OTP (8 digit)</label>
+                <input type="text" id="resetOTP" class="field-input" placeholder="XXXXXXXX" maxlength="8">
+
+                <label class="field-label">PIN Baru (6 digit)</label>
+                <input type="password" id="resetNewPin" class="field-input" placeholder="••••••" maxlength="6">
+
+                <label class="field-label">Konfirmasi PIN Baru</label>
+                <input type="password" id="resetConfirmPin" class="field-input" placeholder="••••••" maxlength="6">
+
+                <button class="btn-full btn-primary" onclick="submitResetPin()">Reset PIN & Masuk</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'login';
+        let pinBuf = '';
+        let confirmPinBuf = '';
+        let isConfirming = false; // logic for setup confirmation
+        let maxLen = 6;
+        let attemptsUsed = 0;
+
+        fetch('/api/auth/status').then(r=>r.json()).then(d=>{
+            if(d.usersCount >= 10 && d.needsSetup == false) {
+                 document.getElementById('tab-register').style.display='none';
+            }
+        }).catch(e=>console.log(e));
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('active'));
+            document.getElementById('tab-'+mode).classList.add('active');
+            
+            pinBuf = ''; renderDots();
+            isConfirming = false;
+
+            if(mode === 'reset') {
+                document.getElementById('panel-main').classList.remove('active');
+                document.getElementById('panel-reset').classList.add('active');
+                document.getElementById('requestResetStep').style.display = 'block';
+                document.getElementById('submitResetStep').style.display = 'none';
+                document.getElementById('resetPhoneReq').value = '';
+                document.getElementById('resetOTP').value = '';
+                document.getElementById('resetNewPin').value = '';
+                document.getElementById('resetConfirmPin').value = '';
+            } else {
+                document.getElementById('panel-reset').classList.remove('active');
+                document.getElementById('panel-main').classList.add('active');
+                document.getElementById('registerFields').style.display = (mode==='register') ? 'block' : 'none';
+                document.getElementById('attemptsRow').style.visibility = (mode==='login') ? 'visible' : 'hidden';
+            }
+            setStatus('', '');
+        }
+
+        function setStatus(msg, type) {
+            const el = document.getElementById('mainStatus');
+            el.className = 'status-msg ' + type;
+            el.textContent = msg;
+            el.style.display = msg ? 'block' : 'none';
+        }
+
+        function renderDots(error=false) {
+            let currentLen = isConfirming ? confirmPinBuf.length : pinBuf.length;
+            for(let i=0; i<6; i++){
+                let d = document.getElementById('dot'+i);
+                d.className = 'pin-dot';
+                if(error && i < currentLen) d.classList.add('error');
+                else if(i < currentLen) d.classList.add('filled');
+            }
+            for(let i=0; i<5; i++){
+                document.getElementById('a'+i).classList.toggle('used', i < attemptsUsed);
+            }
+        }
+
+        function pressNum(n) {
+            if((!isConfirming && pinBuf.length>=6) || (isConfirming && confirmPinBuf.length>=6)) return;
+            if(isConfirming) confirmPinBuf += n;
+            else pinBuf += n;
+            renderDots();
+            // menunggu klik tombol enter
+        }
+
+        function pressDel() {
+            if(isConfirming) confirmPinBuf = confirmPinBuf.slice(0,-1);
+            else pinBuf = pinBuf.slice(0,-1);
+            renderDots();
+        }
+
+        function enterBtn() {
+            let currentLen = isConfirming ? confirmPinBuf.length : pinBuf.length;
+            if (currentLen < 6) {
+                setStatus('Masukkan 6 digit PIN terlebih dahulu!', 'err');
+                renderDots(true);
+                return;
+            }
+            processPin();
+        }
+
+        async function processPin() {
+            let phone = document.getElementById('userPhone').value.trim();
+            if(!phone) { setStatus('Masukkan nomor WhatsApp dulu!', 'err'); pinBuf=''; renderDots(true); return; }
+
+            if(currentMode === 'login') {
+                let pin = pinBuf; pinBuf = ''; renderDots();
+                try {
+                    let r = await fetch('/api/auth/login', {
+                        method:'POST',
+                        headers:{'Content-Type':'application/json'},
+                        body:JSON.stringify({phone, pin})
+                    });
+                    let d = await r.json();
+                    if(r.ok && d.ok) {
+                        setStatus('✅ Login sukses..', 'ok');
+                        sessionStorage.setItem('wa_token', d.token);
+                        setTimeout(()=>window.location.href='/', 600);
+                    } else if(d.locked) {
+                        attemptsUsed = 5; renderDots();
+                        setStatus(d.error, 'err');
+                        setTimeout(()=>{ 
+                            setMode('reset'); 
+                            document.getElementById('resetPhoneReq').value = phone; 
+                        }, 1500);
+                    } else {
+                        attemptsUsed = d.attemptsUsed || attemptsUsed+1; renderDots(true);
+                        setStatus(d.error || 'PIN Salah', 'err');
+                    }
+                } catch(e) { setStatus('Gagal koneksi','err'); }
+            } 
+            else if(currentMode === 'register') {
+                let name = document.getElementById('regName').value.trim();
+                if(!name) { setStatus('Nama belum diisi!','err'); isConfirming=false; confirmPinBuf=''; pinBuf=''; renderDots(true); return; }
+
+                if(!isConfirming) {
+                    isConfirming = true;
+                    setStatus('Konfirmasi PIN: Masukkan PIN yang sama.', 'warn');
+                    renderDots();
+                } else {
+                    if(pinBuf !== confirmPinBuf) {
+                        setStatus('PIN tidak cocok, ulangi!','err');
+                        isConfirming = false; confirmPinBuf=''; pinBuf=''; renderDots(true);
+                        return;
+                    }
+                    try {
+                        let r = await fetch('/api/auth/setup', {
+                            method:'POST',
+                            headers:{'Content-Type':'application/json'},
+                            body:JSON.stringify({phone, name, pin: pinBuf})
+                        });
+                        let d = await r.json();
+                        if(r.ok && d.ok) {
+                            setStatus('Pendaftaran Sukses! Login...', 'ok');
+                            sessionStorage.setItem('wa_token', d.token);
+                            setTimeout(()=>window.location.href='/', 500);
+                        } else {
+                            setStatus(d.error || 'Gagal daftar', 'err');
+                            isConfirming = false; pinBuf=''; confirmPinBuf=''; renderDots();
+                        }
+                    } catch(e) { setStatus('Koneksi sistem gagal','err'); }
+                }
+            }
+        }
+
+        async function requestResetPin() {
+            let phone = document.getElementById('resetPhoneReq').value.trim();
+            if(!phone) { setStatus('Masukkan nomor WhatsApp dulu!','err'); return; }
+            
+            setStatus('Meminta OTP...','warn');
+            try {
+                let r = await fetch('/api/auth/request-reset', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({phone})
+                });
+                let d = await r.json();
+                if(r.ok && d.ok) {
+                    setStatus('OTP terkirim ke sistem alert (Discord/Email)!', 'ok');
+                    document.getElementById('resetPhone').value = phone;
+                    document.getElementById('requestResetStep').style.display = 'none';
+                    document.getElementById('submitResetStep').style.display = 'block';
+                } else {
+                    setStatus(d.error || 'Gagal meminta OTP','err');
+                }
+            } catch(ex){ setStatus('Gagal terhubung server', 'err'); }
+        }
+
+        async function submitResetPin() {
+            let phone = document.getElementById('resetPhone').value.trim();
+            let otp = document.getElementById('resetOTP').value.trim();
+            let newPin = document.getElementById('resetNewPin').value.trim();
+            let confirmPin = document.getElementById('resetConfirmPin').value.trim();
+
+            if(!phone || !otp || !newPin || !confirmPin) { setStatus('Harap isi semua kolom reset!','err'); return; }
+            if(otp.length !== 8) { setStatus('OTP harus 8 digit!','err'); return; }
+            if(newPin.length !== 6) { setStatus('PIN baru harus 6 digit!','err'); return; }
+            if(newPin !== confirmPin) { setStatus('Konfirmasi PIN tidak cocok!','err'); return; }
+            
+            setStatus('Memproses...','warn');
+            try {
+                let r = await fetch('/api/auth/reset-pin', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({phone, otp, newPin})
+                });
+                let d = await r.json();
+                if(r.ok && d.ok) {
+                    setStatus('PIN berhasil direset! Mengalihkan...','ok');
+                    sessionStorage.setItem('wa_token', d.token);
+                    setTimeout(()=>window.location.href='/', 800);
+                } else {
+                    setStatus(d.error || 'Gagal reset PIN','err');
+                }
+            } catch(ex){ setStatus('Gagal terhubung server', 'err'); }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(currentMode==='reset') return;
+            if(e.target.tagName==='INPUT') return; // avoid typing numpad if inside input
+            if (e.key >= '0' && e.key <= '9') pressNum(e.key);
+            else if (e.key === 'Backspace') pressDel();
+            else if (e.key === 'Enter') enterBtn();
+        });
+    </script>
+</body>
+</html>

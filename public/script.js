@@ -3,14 +3,74 @@ let checkedTargets = {}; // index -> boolean
 let cachedMembers = []; // cached group members for compare
 let lastQrUrl = ''; // Cegah flicker reload QR terus menerus
 
+// ===== Auth Token Management =====
+function getToken() { return sessionStorage.getItem('wa_token') || ''; }
+function isGuestMode() { return sessionStorage.getItem('wa_guest_mode') === '1'; }
+
+// Wrapped fetch that always includes Bearer token and handles 401
+async function apiFetch(url, options = {}) {
+    const token = getToken();
+    if (!options.headers) options.headers = {};
+    options.headers['Authorization'] = 'Bearer ' + token;
+    const r = await window.fetch(url, options);
+    if (r.status === 401) {
+        // Session expired or invalid - redirect to login
+        sessionStorage.removeItem('wa_token');
+        sessionStorage.removeItem('wa_guest_mode');
+        window.location.href = '/login.html';
+        throw new Error('Unauthorized');
+    }
+    return r;
+}
+
+// Show guest mode banner if in guest mode
+function initGuestBanner() {
+    if (!isGuestMode()) return;
+    const phone = sessionStorage.getItem('wa_guest_phone') || '';
+    const banner = document.createElement('div');
+    banner.id = 'guestBanner';
+    banner.style.cssText = `position:fixed;top:0;left:0;right:0;background:linear-gradient(90deg,#0369a1,#0ea5e9);color:white;text-align:center;padding:8px 16px;font-size:13px;font-weight:600;z-index:9999;display:flex;align-items:center;justify-content:center;gap:12px;`;
+    banner.innerHTML = `<span>👤 Mode Tamu — Nomor: <strong>${phone}</strong> &nbsp;|&nbsp; Data tidak terintegrasi. Beberapa fitur terbatas.</span>`
+        + `<button onclick="doAppLogout()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:white;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">Keluar</button>`;
+    document.body.prepend(banner);
+    document.body.style.paddingTop = '38px';
+}
+
+let logoutClickCount = 0;
+async function doAppLogout() {
+    if (logoutClickCount === 0) {
+        logoutClickCount++;
+        const btn = document.getElementById('webLogoutBtn');
+        const oldText = btn.innerHTML;
+        const oldBg = btn.style.background;
+        btn.innerHTML = '⚠️ Yakin Pindah?';
+        btn.style.background = '#dc2626';
+        setTimeout(() => {
+            logoutClickCount = 0;
+            if(btn) {
+                btn.innerHTML = oldText;
+                btn.style.background = oldBg;
+            }
+        }, 3000);
+        return;
+    }
+    // Proceed with logout
+    try { await apiFetch('/api/auth/logout', { method: 'POST' }); } catch(e) {}
+    sessionStorage.removeItem('wa_token');
+    sessionStorage.removeItem('wa_guest_mode');
+    sessionStorage.removeItem('wa_guest_phone');
+    window.location.href = '/login.html';
+}
+
 // ===== Init =====
+initGuestBanner();
 fetchStatus(); fetchLists(); fetchTargets(); fetchSchedulesCount();
 setInterval(fetchStatus, 3000);
 setInterval(fetchSchedulesCount, 10000);
 
 async function fetchSchedulesCount() {
     try {
-        const r = await fetch('/api/schedules');
+        const r = await apiFetch('/api/schedules');
         const d = await r.json();
         const countSpan = document.getElementById('scheduleCount');
         if (countSpan) countSpan.textContent = d.length;
@@ -21,7 +81,7 @@ async function fetchSchedulesCount() {
 let initialLoginSync = false;
 async function fetchStatus() {
     try {
-        const r = await fetch('/api/status'); const d = await r.json();
+        const r = await apiFetch('/api/status'); const d = await r.json();
         
         // Sesuaikan toggle dengan state server saat pertama kali muat
         if (!initialLoginSync && typeof d.phoneLoginMode !== 'undefined') {
@@ -62,7 +122,7 @@ async function requestPairingCode() {
     const btn = document.getElementById('btnPair');
     btn.disabled = true; btn.textContent = '⏳ Meminta...';
     try {
-        const r = await fetch('/api/login/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) });
+        const r = await apiFetch('/api/login/pair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) });
         const d = await r.json();
         if (r.ok) {
             document.getElementById('pairingCodeResult').style.display = 'block';
@@ -75,7 +135,7 @@ async function requestPairingCode() {
 
 // ===== Targets with Checkboxes =====
 async function fetchTargets() {
-    const r = await fetch('/api/targets'); targetsList = await r.json();
+    const r = await apiFetch('/api/targets'); targetsList = await r.json();
     // Initialize all as checked if new
     targetsList.forEach((_, i) => { if (checkedTargets[i] === undefined) checkedTargets[i] = true; });
     renderTargets(); updateGroupSelect(); updateSendInfo();
@@ -130,14 +190,14 @@ async function addTarget() {
     const id = document.getElementById('targetId').value.trim();
     const label = document.getElementById('targetLabel').value.trim();
     if (!id) { toast('ID tujuan wajib diisi', 'err'); return; }
-    const r = await fetch('/api/targets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, label: label || id }) });
+    const r = await apiFetch('/api/targets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, label: label || id }) });
     if (r.ok) {
         document.getElementById('targetId').value = ''; document.getElementById('targetLabel').value = '';
         toast('Target ditambahkan!', 'ok'); fetchTargets();
     } else { const d = await r.json(); toast(d.error || 'Gagal', 'err'); }
 }
 async function removeTarget(index) {
-    const r = await fetch('/api/targets/' + index, { method: 'DELETE' });
+    const r = await apiFetch('/api/targets/' + index, { method: 'DELETE' });
     if (r.ok) {
         delete checkedTargets[index];
         // Reindex checked
@@ -155,7 +215,7 @@ async function loadMembers() {
     const area = document.getElementById('membersArea'), info = document.getElementById('membersInfo');
     area.innerHTML = '<div class="members-loading">⏳ Mengambil data anggota...</div>'; info.textContent = '';
     try {
-        const r = await fetch('/api/group-members/' + encodeURIComponent(groupId)); const d = await r.json();
+        const r = await apiFetch('/api/group-members/' + encodeURIComponent(groupId)); const d = await r.json();
         if (!r.ok) { area.innerHTML = '<p style="color:red">' + escHtml(d.error) + '</p>'; return; }
         cachedMembers = d.members;
         info.textContent = d.groupName + ' — ' + d.members.length + ' anggota';
@@ -293,8 +353,8 @@ function normalizeNumber(val) {
 
 // ===== Lists / Cards =====
 async function fetchLists() {
-    const r = await fetch('/api/lists'); lists = await r.json(); renderCards();
-    const r2 = await fetch('/api/default-message'); const d2 = await r2.json();
+    const r = await apiFetch('/api/lists'); lists = await r.json(); renderCards();
+    const r2 = await apiFetch('/api/default-message'); const d2 = await r2.json();
     document.getElementById('msgBox').value = d2.message;
 }
 function renderCards() {
@@ -335,7 +395,7 @@ function viewList(key) {
 function closeView() { document.getElementById('viewOverlay').classList.remove('show'); }
 async function delList() {
     if (!confirm('Yakin hapus "' + currentKey + '"?')) return;
-    const r = await fetch('/api/lists/' + encodeURIComponent(currentKey), { method: 'DELETE' });
+    const r = await apiFetch('/api/lists/' + encodeURIComponent(currentKey), { method: 'DELETE' });
     if (r.ok) { toast(currentKey + ' dihapus!', 'ok'); closeView(); fetchLists(); } else toast('Gagal', 'err');
 }
 
@@ -360,7 +420,7 @@ document.getElementById('editCSV').addEventListener('input', function () {
 async function saveEdit() {
     const n = document.getElementById('editName').value.trim(), csv = document.getElementById('editCSV').value.trim();
     if (!csv) { toast('Data CSV kosong', 'err'); return; }
-    const r = await fetch('/api/lists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: n, csv }) });
+    const r = await apiFetch('/api/lists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: n, csv }) });
     if (r.ok) { toast(n + ' diperbarui!', 'ok'); closeEdit(); fetchLists(); } else { const d = await r.json(); toast(d.error || 'Gagal', 'err'); }
 }
 
@@ -379,13 +439,13 @@ async function saveList() {
     const n = document.getElementById('addName').value.trim(), csv = document.getElementById('addCSV').value.trim();
     if (!n) { toast('Nama wajib diisi', 'err'); return; }
     if (!csv) { toast('CSV wajib diisi', 'err'); return; }
-    const r = await fetch('/api/lists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: n, csv }) });
+    const r = await apiFetch('/api/lists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: n, csv }) });
     if (r.ok) { toast(n + ' tersimpan!', 'ok'); closeAdd(); fetchLists(); } else { const d = await r.json(); toast(d.error || 'Gagal', 'err'); }
 }
 
 // ===== Monitor =====
 async function toggleMonitor() {
-    const r = await fetch('/api/monitor/toggle', { method: 'POST' }); const d = await r.json();
+    const r = await apiFetch('/api/monitor/toggle', { method: 'POST' }); const d = await r.json();
     document.getElementById('monitorLabel').textContent = d.on ? 'ON' : 'OFF';
     document.getElementById('monitorToggle').checked = d.on;
     if (d.on) { pollMonitor(); monitorInterval = setInterval(pollMonitor, 2000); }
@@ -393,7 +453,7 @@ async function toggleMonitor() {
 }
 async function pollMonitor() {
     try {
-        const r = await fetch('/api/monitor'); const d = await r.json();
+        const r = await apiFetch('/api/monitor'); const d = await r.json();
         const box = document.getElementById('monitorBox'); if (!d.on) return;
         if (d.messages.length === 0) { box.innerHTML = '<div class="monitor-empty" style="color:#666">Menunggu pesan masuk...</div>'; return; }
         let html = '';
@@ -411,7 +471,7 @@ async function doLogout() {
     if (!confirm('Yakin logout?')) return;
     const btn = document.getElementById('logoutBtn'); btn.disabled = true; btn.textContent = '⏳...';
     try {
-        const r = await fetch('/api/logout', { method: 'POST' }); const d = await r.json();
+        const r = await apiFetch('/api/logout', { method: 'POST' }); const d = await r.json();
         if (r.ok) toast('Berhasil logout!', 'ok'); else toast(d.error || 'Gagal', 'err');
     } catch (e) { toast('Error: ' + e.message, 'err'); }
     btn.disabled = false; btn.textContent = '🚪 Logout';
@@ -426,7 +486,7 @@ async function switchLoginMode(mode) {
     const qrArea = document.getElementById('qrArea');
 
     try {
-        await fetch('/api/login/mode', {
+        await apiFetch('/api/login/mode', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ mode })
@@ -501,7 +561,7 @@ async function sendGroupMsg() {
     btn.disabled = true; btn.textContent = '⏳ Mengirim...';
     try {
         const hideTag = document.getElementById('hideTagCheck').checked;
-        const r = await fetch('/api/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg, selectedTargets: selectedIndices, hideTag: hideTag }) });
+        const r = await apiFetch('/api/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg, selectedTargets: selectedIndices, hideTag: hideTag }) });
         const d = await r.json();
         if (r.ok) toast('🎉 Terkirim ke ' + d.sent + '/' + d.total + ' target!', 'ok');
         else toast(d.error || 'Gagal', 'err');
@@ -575,7 +635,7 @@ async function startPrivateSend() {
         progBar.style.width = `${((i) / total) * 100}%`;
 
         try {
-            const r = await fetch('/api/send-private', {
+            const r = await apiFetch('/api/send-private', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ target: targetNumber, message: personalMsg })
@@ -694,7 +754,7 @@ async function submitSchedule() {
     const btn = document.querySelector('#scheduleOverlay .btn-save');
     btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
     try {
-        const r = await fetch('/api/schedules', {
+        const r = await apiFetch('/api/schedules', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -718,20 +778,37 @@ async function submitSchedule() {
     btn.disabled = false; btn.textContent = '🕒 Buat Jadwal';
 }
 
+let schedulesPollInterval = null;
+
 async function openSchedulesList() {
     document.getElementById('schedulesListOverlay').classList.add('show');
+    await loadSchedulesData();
+    if (!schedulesPollInterval) {
+        schedulesPollInterval = setInterval(loadSchedulesData, 3000);
+    }
+}
+
+function closeSchedulesList() { 
+    document.getElementById('schedulesListOverlay').classList.remove('show'); 
+    if (schedulesPollInterval) {
+        clearInterval(schedulesPollInterval);
+        schedulesPollInterval = null;
+    }
+}
+
+async function loadSchedulesData() {
     const body = document.getElementById('schedulesListBody');
-    body.innerHTML = '<p>Loading...</p>';
+    if (!body.innerHTML.includes('table')) body.innerHTML = '<p>Loading...</p>';
     try {
-        const r = await fetch('/api/schedules');
+        const r = await apiFetch('/api/schedules');
         const d = await r.json();
         fetchSchedulesCount();
         if (!Array.isArray(d) || d.length === 0) {
             body.innerHTML = '<p class="hint">Tidak ada pesan terjadwal.</p>';
             return;
         }
-        let html = '<div class="members-table-wrap"><table><thead><tr><th>Dibuat</th><th>Jadwal</th><th>Tipe</th><th>Detail</th><th>Aksi</th></tr></thead><tbody>';
-        d.forEach(s => { // Sort won't accurately reflect both array types properly here for now, so removed sort to keep code neat
+        let html = '<div class="members-table-wrap"><table><thead><tr><th>Dibuat</th><th>Jadwal</th><th>Tipe/Status</th><th>Detail</th><th>Aksi</th></tr></thead><tbody>';
+        d.forEach(s => {
             let dateStr = '';
             if (s.scheduleType === 'recurring') {
                 const dayMap = {'1':'Sen','2':'Sel','3':'Rab','4':'Kam','5':'Jum','6':'Sab','7':'Min'};
@@ -740,17 +817,39 @@ async function openSchedulesList() {
             } else {
                 dateStr = `<span style="font-weight:600;color:#25d366">${new Date(s.timeToProcess).toLocaleString('id-ID')}</span>`;
             }
-            
-            let info = s.type === 'grup' ? `${s.payload.selectedTargets.length} grup/target` : `${s.payload.length} orang(japri)`;
-            let msgPreview = s.type === 'grup' ? s.payload.message : s.payload[0].message;
+
+            let typeBadge = '';
+            let info = '';
+            let msgPreview = '';
+
+            if (s.type === 'excel_broadcast') {
+                typeBadge = `<span class="badge-superadmin" style="background:#8b5cf6">Excel Broadcast</span>`;
+                if (s.status === 'processing') typeBadge += `<br><span style="color:#f59e0b;font-size:11px;font-weight:bold;">⏳ Sedang Proses</span>`;
+                else if (s.status === 'completed') typeBadge += `<br><span style="color:#10b981;font-size:11px;font-weight:bold;">✅ Selesai</span>`;
+                else typeBadge += `<br><span style="color:#6b7280;font-size:11px;">🕒 Pending</span>`;
+
+                info = `Total: ${s.totalTargets} | ✅ ${s.sentCount || 0} | ❌ ${s.failedCount || 0}`;
+                if (s.status === 'processing') {
+                    info += `<br><span style="color:#2563eb;font-weight:600;">👉 Memproses: ${s.currentTarget || ''}</span>`;
+                    if (s.currentDelay) info += `<br><span style="color:#d97706;font-size:11px;">${s.currentDelay}</span>`;
+                }
+                msgPreview = s.payload.items && s.payload.items[0] ? s.payload.items[0].message : '';
+            } else {
+                typeBadge = `<span class="badge-${s.type === 'grup' ? 'admin' : 'superadmin'}">${s.type}</span>`;
+                if (s.status === 'processing') typeBadge += `<br><span style="color:#f59e0b;font-size:11px;font-weight:bold;">⏳ Memproses</span>`;
+                else typeBadge += `<br><span style="color:#6b7280;font-size:11px;">🕒 Pending</span>`;
+                info = s.type === 'grup' ? `${s.payload.selectedTargets.length} grup/target` : `${s.payload.length} orang(japri)`;
+                msgPreview = s.type === 'grup' ? s.payload.message : s.payload[0].message;
+            }
+
             if (msgPreview.length > 30) msgPreview = msgPreview.substring(0, 30) + '...';
             html += `<tr>
                 <td style="font-size:12px;color:#666;">${s.createdAt || '-'}</td>
                 <td>${dateStr}</td>
-                <td><span class="badge-${s.type === 'grup' ? 'admin' : 'superadmin'}">${s.type}</span></td>
-                <td style="font-size:12px;">Ke: ${info}<br>Pesan: ${escHtml(msgPreview)}</td>
+                <td>${typeBadge}</td>
+                <td style="font-size:12px;">${info}<br><span style="color:#888;">Pesan: ${escHtml(msgPreview)}</span></td>
                 <td style="display:flex;gap:6px;">
-                    <button class="btn btn-blue btn-sm" onclick="openEditSchedule('${s.id}')">✏️ Edit</button>
+                    ${s.type !== 'excel_broadcast' && s.status !== 'completed' ? `<button class="btn btn-blue btn-sm" onclick="openEditSchedule('${s.id}')">✏️ Edit</button>` : ''}
                     <button class="btn btn-red btn-sm" onclick="deleteSchedule('${s.id}')">🗑 Hapus</button>
                 </td>
             </tr>`;
@@ -761,12 +860,19 @@ async function openSchedulesList() {
         body.innerHTML = '<p style="color:red">Error memuat data jadwal.</p>';
     }
 }
-function closeSchedulesList() { document.getElementById('schedulesListOverlay').classList.remove('show'); }
+
+function closeSchedulesList() { 
+    document.getElementById('schedulesListOverlay').classList.remove('show'); 
+    if (schedulesPollInterval) {
+        clearInterval(schedulesPollInterval);
+        schedulesPollInterval = null;
+    }
+}
 
 async function deleteSchedule(id) {
     if (!confirm('Yakin membatalkan pesan jadwal ini?')) return;
     try {
-        const r = await fetch('/api/schedules/' + id, { method: 'DELETE' });
+        const r = await apiFetch('/api/schedules/' + id, { method: 'DELETE' });
         if (r.ok) {
             toast('Jadwal dibatalkan', 'ok');
             openSchedulesList();
@@ -777,7 +883,7 @@ async function deleteSchedule(id) {
 let editingScheduleId = null;
 async function openEditSchedule(id) {
     // Fetch latest schedules
-    const r = await fetch('/api/schedules');
+    const r = await apiFetch('/api/schedules');
     const all = await r.json();
     const s = all.find(x => x.id === id);
     if (!s) { toast('Jadwal tidak ditemukan', 'err'); return; }
@@ -836,7 +942,7 @@ async function saveEditSchedule() {
     const btn = document.getElementById('editSchedSaveBtn');
     btn.disabled = true; btn.textContent = '⏳ Menyimpan...';
     try {
-        const r = await fetch('/api/schedules/' + editingScheduleId, {
+        const r = await apiFetch('/api/schedules/' + editingScheduleId, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
@@ -883,7 +989,7 @@ async function triggerSystemUpdate() {
     toast('🔄 Mengirim perintah update...', 'info');
     
     try {
-        const res = await fetch('/api/system-update', { method: 'POST' });
+        const res = await apiFetch('/api/system-update', { method: 'POST' });
         
         // Peringatan bahwa website mati sementara
         toast('⏳ Server sedang me-restart, halaman memuat ulang...', 'success');
@@ -893,7 +999,242 @@ async function triggerSystemUpdate() {
             window.location.reload(true);
         }, 8000);
         
-    } catch (err) {
+} catch (err) {
         toast('❌ Gagal menghubungi server saat update', 'error');
     }
 }
+
+// ===== Broadcast Excel =====
+let excelDataRaw = [];
+
+async function handleExcelUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Konversi ke JSON (array of array untuk mendapatkan header)
+            const jsonArray = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+            if (jsonArray.length < 2) {
+                toast('File Excel kosong atau tidak memiliki baris data!', 'err');
+                return;
+            }
+            
+            const headers = jsonArray[0].map(h => (h || '').toString().trim());
+            const rows = jsonArray.slice(1);
+            
+            // Bentuk object dengan keys
+            excelDataRaw = rows.map(row => {
+                let obj = {};
+                headers.forEach((h, i) => {
+                    obj[h] = row[i] !== undefined ? row[i] : '';
+                });
+                return obj;
+            }).filter(obj => Object.keys(obj).some(k => obj[k] !== '')); // filter baris kosong
+
+            if (excelDataRaw.length === 0) {
+                toast('Tidak ada baris data valid di Excel!', 'err');
+                return;
+            }
+
+            renderExcelPreview(headers, excelDataRaw.slice(0, 10));
+            populateExcelSelects(headers);
+
+            document.getElementById('excelPreviewArea').style.display = 'block';
+            toast(`Berhasil memuat ${excelDataRaw.length} baris data.`, 'ok');
+
+        } catch (error) {
+            console.error(error);
+            toast('Gagal membaca file Excel', 'err');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function renderExcelPreview(headers, rows) {
+    const headEl = document.getElementById('excelPreviewHead');
+    const bodyEl = document.getElementById('excelPreviewBody');
+    
+    let th = '<tr>' + headers.map(h => `<th style="padding:6px; border:1px solid #ddd;">${escHtml(h)}</th>`).join('') + '</tr>';
+    headEl.innerHTML = th;
+
+    let trs = rows.map(row => {
+        return '<tr>' + headers.map(h => `<td style="padding:6px; border:1px solid #ddd;">${escHtml(row[h] || '')}</td>`).join('') + '</tr>';
+    }).join('');
+    bodyEl.innerHTML = trs;
+}
+
+function populateExcelSelects(headers) {
+    const colPhone = document.getElementById('excelColPhone');
+    const colMsg = document.getElementById('excelColMessage');
+    
+    let opts = '<option value="">-- Pilih Kolom --</option>' + headers.map(h => `<option value="${escHtml(h)}">${escHtml(h)}</option>`).join('');
+    colPhone.innerHTML = opts;
+    colMsg.innerHTML = opts;
+
+    // Coba tebak kolom
+    headers.forEach(h => {
+        let hl = h.toLowerCase();
+        if (hl.includes('nomor') || hl.includes('no') || hl.includes('phone') || hl.includes('hp')) {
+            if(!colPhone.value) colPhone.value = h;
+        }
+        if (hl.includes('pesan') || hl.includes('msg') || hl.includes('message')) {
+            if(!colMsg.value) colMsg.value = h;
+        }
+    });
+}
+
+async function sendExcelBroadcast() {
+    const colPhone = document.getElementById('excelColPhone').value;
+    const colMsg = document.getElementById('excelColMessage').value;
+
+    if (!colPhone || !colMsg) {
+        toast('Silakan pilih kolom Nomor dan Pesan!', 'err');
+        return;
+    }
+
+    if (excelDataRaw.length === 0) {
+        toast('Data Excel kosong!', 'err');
+        return;
+    }
+
+    const payload = excelDataRaw.map(row => ({
+        target: String(row[colPhone] || '').trim(),
+        message: String(row[colMsg] || '')
+    })).filter(x => x.target && x.message);
+
+    if (payload.length === 0) {
+        toast('Tidak ada baris yang valid (nomor/pesan kosong)', 'err');
+        return;
+    }
+
+    const limitMode = document.querySelector('input[name="excelSendLimit"]:checked').value;
+    let limitCount = payload.length;
+    if (limitMode === 'custom') {
+        const customCount = parseInt(document.getElementById('excelSendCount').value, 10);
+        if (customCount > 0 && customCount < payload.length) {
+            limitCount = customCount;
+        }
+    }
+
+    const finalPayload = payload.slice(0, limitCount);
+
+    const minDelay = parseInt(document.getElementById('excelMinDelay').value, 10) || 246;
+    const maxDelay = parseInt(document.getElementById('excelMaxDelay').value, 10) || 302;
+
+    if (!confirm(`Akan mengirim ${finalPayload.length} pesan broadcast dengan jeda ${minDelay}-${maxDelay} detik. Lanjutkan?`)) return;
+
+    const btn = document.getElementById('btnSendExcel');
+    const progressText = document.getElementById('excelSendProgress');
+    
+    btn.disabled = true;
+    progressText.style.display = 'inline';
+    
+    try {
+        const r = await apiFetch('/api/broadcast-excel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                payload: finalPayload,
+                minDelay: minDelay,
+                maxDelay: maxDelay
+            })
+        });
+        const d = await r.json();
+        
+        if (r.ok) {
+            toast(`✅ Broadcast sedang diproses di latar belakang!`, 'ok');
+            document.getElementById('excelFileInput').value = '';
+            document.getElementById('excelPreviewArea').style.display = 'none';
+            excelDataRaw = [];
+        } else {
+            toast(d.error || 'Gagal mengirim broadcast', 'err');
+        }
+    } catch (e) {
+        toast('Error: ' + e.message, 'err');
+    }
+    
+    btn.disabled = false;
+    progressText.style.display = 'none';
+}
+
+function openBroadcastLogs() {
+    document.getElementById('broadcastLogsOverlay').classList.add('show');
+    fetchBroadcastLogs();
+}
+
+function closeBroadcastLogs() {
+    document.getElementById('broadcastLogsOverlay').classList.remove('show');
+}
+
+async function fetchBroadcastLogs() {
+    const body = document.getElementById('broadcastLogsBody');
+    body.innerHTML = '<p>Loading logs...</p>';
+    
+    try {
+        const r = await apiFetch('/api/broadcast-logs');
+        const d = await r.json();
+        
+        if (!Array.isArray(d) || d.length === 0) {
+            body.innerHTML = '<p class="hint">Belum ada riwayat broadcast.</p>';
+            return;
+        }
+        
+        let html = '';
+        d.forEach(log => {
+            html += `
+            <div style="border:1px solid #ccc; border-radius:6px; padding:10px; margin-bottom:12px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px;">
+                    <strong>ID: ${log.id}</strong>
+                    <span style="color:#666;">${new Date(log.timestamp).toLocaleString('id-ID')}</span>
+                </div>
+                <div style="display:flex; gap:15px; margin-bottom:10px; font-size:14px;">
+                    <span style="color:#0369a1; font-weight:600;">Total: ${log.total}</span>
+                    <span style="color:#25d366; font-weight:600;">Sukses: ${log.success}</span>
+                    <span style="color:#dc2626; font-weight:600;">Gagal: ${log.failed}</span>
+                </div>
+                <details>
+                    <summary style="cursor:pointer; font-weight:600; font-size:13px; color:#555;">Lihat Detail Baris</summary>
+                    <div style="max-height:200px; overflow-y:auto; margin-top:8px; background:#f9f9f9; padding:8px; border-radius:4px;">
+                        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                            <thead>
+                                <tr style="background:#eee;">
+                                    <th style="padding:4px; text-align:left;">Nomor Tujuan</th>
+                                    <th style="padding:4px; text-align:left;">Status</th>
+                                    <th style="padding:4px; text-align:left;">Keterangan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${log.details.map(det => `
+                                <tr>
+                                    <td style="padding:4px; border-bottom:1px solid #ddd;">${escHtml(det.target)}</td>
+                                    <td style="padding:4px; border-bottom:1px solid #ddd;">
+                                        <span style="color:${det.status === 'success' ? '#25d366' : '#dc2626'}; font-weight:600;">
+                                            ${det.status === 'success' ? '✔ Sukses' : '❌ Gagal'}
+                                        </span>
+                                    </td>
+                                    <td style="padding:4px; border-bottom:1px solid #ddd; max-width:200px; word-break:break-all;">
+                                        ${escHtml(det.message || '')}
+                                    </td>
+                                </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+            </div>
+            `;
+        });
+        body.innerHTML = html;
+        
+    } catch (e) {
+        body.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`;
+    }
+}
+
