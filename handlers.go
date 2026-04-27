@@ -1161,7 +1161,9 @@ func handleSystemUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Println("🔄 Menerima perintah Auto-Update dari web...")
-	cmd := exec.Command("sh", "-c", "git pull https://github.com/anuGrahbodi/project-gowa main && pm2 restart bot-wa --update-env")
+	// Tarik kode, kompilasi ke file baru, timpa file lama, lalu matikan proses ini agar systemd me-restart-nya otomatis.
+	cmdStr := "git pull https://github.com/anuGrahbodi/project-gowa main && /usr/local/go/bin/go build -o wabot_new . && mv wabot_new wabot && kill -9 $PPID"
+	cmd := exec.Command("sh", "-c", cmdStr)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("❌ Gagal Update: %v\n", err)
