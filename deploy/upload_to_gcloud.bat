@@ -27,14 +27,13 @@ tar --exclude=".git" ^
 echo [2/3] Upload ke server...
 gcloud compute scp wa_project.tar.gz %INSTANCE_NAME%:~/ --zone=%ZONE%
 
-echo [3/3] Extract di server...
-gcloud compute ssh %INSTANCE_NAME% --zone=%ZONE% --command="mkdir -p ~/gowhatsappweb && tar -xzf ~/wa_project.tar.gz -C ~/ && rm ~/wa_project.tar.gz"
+echo [3/3] Extract dan Setup di server...
+gcloud compute ssh %INSTANCE_NAME% --zone=%ZONE% --command="mkdir -p ~/gowhatsappweb && tar -xzf ~/wa_project.tar.gz -C ~/ && rm ~/wa_project.tar.gz && bash ~/gowhatsappweb/deploy/setup_server.sh"
 
 del wa_project.tar.gz
 
 echo =============================================
-echo Upload selesai! Selanjutnya SSH ke server:
-echo gcloud compute ssh %INSTANCE_NAME% --zone=%ZONE%
-echo Lalu jalankan: bash ~/gowhatsappweb/deploy/setup_server.sh
+echo Upload dan Update Server selesai secara otomatis!
+echo Silakan cek web Anda sekarang.
 echo =============================================
 pause
