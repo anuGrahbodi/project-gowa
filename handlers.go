@@ -1161,7 +1161,7 @@ func handleSystemUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Println("🔄 Menerima perintah Auto-Update dari web...")
-	cmd := exec.Command("sh", "-c", "git pull origin main && pm2 restart bot-wa --update-env")
+	cmd := exec.Command("sh", "-c", "git pull https://github.com/anuGrahbodi/project-gowa main && pm2 restart bot-wa --update-env")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("❌ Gagal Update: %v\n", err)

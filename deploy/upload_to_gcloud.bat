@@ -10,9 +10,9 @@ echo   Upload ke Google Cloud VM
 echo =============================================
 
 REM === EDIT BAGIAN INI ===
-set INSTANCE_NAME=wa-bot-server
-set ZONE=asia-southeast2-a
-set REMOTE_DIR=/home/[USERNAME]/gowhatsappweb
+set INSTANCE_NAME=whatsapnoreply
+set ZONE=us-central1-a
+set REMOTE_DIR=/home/%USERNAME%/gowhatsappweb
 REM =======================
 
 echo [1/3] Compress file proyek...

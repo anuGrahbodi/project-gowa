@@ -342,6 +342,10 @@ func executeGroupSchedule(job *Schedule) {
 	log.Printf("🚀 Schedule: Mengirim ke %d target, %d mentions\n", len(sendTargets), len(mentionIDs))
 
 	for _, target := range sendTargets {
+		if !ws.IsReady || !ws.Client.IsConnected() {
+			log.Printf("❌ [%s] Sesi terputus saat jadwal grup berjalan. Menghentikan.", job.UserPhone)
+			break
+		}
 		jid, err := types.ParseJID(target.ID)
 		if err != nil {
 			log.Println("  ⚠️ JID tidak valid:", target.ID)
@@ -383,6 +387,10 @@ func executePrivateSchedule(job *Schedule) {
 	}
 
 	for i, item := range payload {
+		if !ws.IsReady || !ws.Client.IsConnected() {
+			log.Printf("❌ [%s] Sesi terputus saat jadwal pribadi berjalan. Menghentikan.", job.UserPhone)
+			break
+		}
 		chatID := formatPhoneNumber(item.Target)
 		jid := types.NewJID(chatID, types.DefaultUserServer)
 		err := sendSimpleMessage(ws, jid, item.Message)
@@ -429,6 +437,14 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 	}
 
 	for i, item := range payload.Items {
+		if !ws.IsReady || !ws.Client.IsConnected() {
+			log.Printf("❌ [%s] Sesi terputus saat broadcast excel berjalan. Menghentikan broadcast.", payload.SessionPhone)
+			updateScheduleField(job.ID, func(s *Schedule) {
+				s.CurrentTarget = "Selesai (Terputus)"
+				s.CurrentDelay = "Gagal: Sesi Terputus"
+			})
+			break
+		}
 		targetStr := formatExcelNumber(item.Target)
 		if targetStr == "" {
 			continue
@@ -456,7 +472,20 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 		// Cek apakah nomor terdaftar di WhatsApp
 		isRegistered := false
 		resp, err := ws.Client.IsOnWhatsApp(context.Background(), []string{"+" + targetStr})
-		if err == nil && len(resp) > 0 {
+		if err != nil {
+			errMsg := fmt.Sprintf("Gagal memeriksa nomor: %v", err)
+			details = append(details, BroadcastLogDetail{
+				Target:  targetStr,
+				Status:  "failed",
+				Message: errMsg,
+			})
+			updateScheduleField(job.ID, func(s *Schedule) {
+				s.FailedCount++
+			})
+			log.Printf("  ❌ Broadcast Gagal ke %s: %s\n", targetStr, errMsg)
+			go sendFailedBroadcastAlert(payload.UserName, payload.SessionPhone, targetStr, errMsg)
+			continue
+		} else if len(resp) > 0 {
 			isRegistered = resp[0].IsIn
 		}
 
