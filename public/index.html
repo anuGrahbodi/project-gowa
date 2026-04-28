@@ -198,17 +198,30 @@
                     <select id="excelColMessage" style="min-width:150px; padding:4px;"></select>
                 </div>
                 <div>
-                    <label style="font-weight:600; font-size:13px; display:block; margin-bottom:4px;">Jumlah Data Dikirim:</label>
-                    <div style="display:flex; align-items:center; gap:10px;">
+                    <label style="font-weight:600; font-size:13px; display:block; margin-bottom:4px;">Rentang Data Dikirim:</label>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
                         <label style="font-size:13px; display:flex; align-items:center; gap:4px; cursor:pointer;">
-                            <input type="radio" name="excelSendLimit" value="all" checked onchange="document.getElementById('excelSendCount').disabled=true;">
+                            <input type="radio" name="excelSendLimit" value="all" checked onchange="toggleExcelRange()">
                             Semua Data
                         </label>
                         <label style="font-size:13px; display:flex; align-items:center; gap:4px; cursor:pointer;">
-                            <input type="radio" name="excelSendLimit" value="custom" onchange="document.getElementById('excelSendCount').disabled=false; document.getElementById('excelSendCount').focus();">
-                            Sebagian:
+                            <input type="radio" name="excelSendLimit" value="top" onchange="toggleExcelRange()">
+                            Dari atas hingga baris:
+                            <input type="number" id="excelRangeTop" value="10" min="1" disabled style="width:60px; padding:2px 4px;">
                         </label>
-                        <input type="number" id="excelSendCount" value="10" min="1" disabled style="width:60px; padding:2px 4px;">
+                        <label style="font-size:13px; display:flex; align-items:center; gap:4px; cursor:pointer;">
+                            <input type="radio" name="excelSendLimit" value="bottom" onchange="toggleExcelRange()">
+                            Dari baris:
+                            <input type="number" id="excelRangeBottomStart" value="1" min="1" disabled style="width:60px; padding:2px 4px;">
+                            hingga bawah
+                        </label>
+                        <label style="font-size:13px; display:flex; align-items:center; gap:4px; cursor:pointer;">
+                            <input type="radio" name="excelSendLimit" value="range" onchange="toggleExcelRange()">
+                            Dari baris:
+                            <input type="number" id="excelRangeStart" value="1" min="1" disabled style="width:60px; padding:2px 4px;">
+                            hingga baris:
+                            <input type="number" id="excelRangeEnd" value="10" min="1" disabled style="width:60px; padding:2px 4px;">
+                        </label>
                     </div>
                 </div>
                 <div>

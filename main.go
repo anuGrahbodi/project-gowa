@@ -128,9 +128,10 @@ type User struct {
 }
 
 type BroadcastLogDetail struct {
-	Target  string `json:"target"`
-	Status  string `json:"status"` // "success" or "failed"
-	Message string `json:"message"` // Error message if failed
+	Target      string `json:"target"`
+	Status      string `json:"status"` // "success" or "failed"
+	Message     string `json:"message"` // Error message if failed
+	SentMessage string `json:"sentMessage,omitempty"` // The actual WA message content
 }
 
 type BroadcastLog struct {

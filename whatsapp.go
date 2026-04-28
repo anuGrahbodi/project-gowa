@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 
@@ -436,17 +437,36 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 		return
 	}
 
+	limit := randomDelay(49, 51)
+	itemsProcessed := 0
+	lastProcessedIndex := -1
+	disconnected := false
+
 	for i, item := range payload.Items {
+		if itemsProcessed >= limit {
+			log.Printf("⏳ Batas %d pesan tercapai hari ini. Sisa akan dilanjutkan besok.", limit)
+			lastProcessedIndex = i
+			break
+		}
+
 		if !ws.IsReady || !ws.Client.IsConnected() {
 			log.Printf("❌ [%s] Sesi terputus saat broadcast excel berjalan. Menghentikan broadcast.", payload.SessionPhone)
 			updateScheduleField(job.ID, func(s *Schedule) {
 				s.CurrentTarget = "Selesai (Terputus)"
 				s.CurrentDelay = "Gagal: Sesi Terputus"
 			})
+			lastProcessedIndex = i
+			disconnected = true
 			break
 		}
 		targetStr := formatExcelNumber(item.Target)
 		if targetStr == "" {
+			details = append(details, BroadcastLogDetail{
+				Target:      item.Target,
+				Status:      "skipped",
+				Message:     "Nomor kosong/tidak valid",
+				SentMessage: item.Message,
+			})
 			continue
 		}
 
@@ -458,9 +478,10 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 		if err != nil {
 			errMsg := "Invalid JID: " + err.Error()
 			details = append(details, BroadcastLogDetail{
-				Target:  item.Target,
-				Status:  "failed",
-				Message: errMsg,
+				Target:      item.Target,
+				Status:      "failed",
+				Message:     errMsg,
+				SentMessage: item.Message,
 			})
 			updateScheduleField(job.ID, func(s *Schedule) {
 				s.FailedCount++
@@ -475,9 +496,10 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 		if err != nil {
 			errMsg := fmt.Sprintf("Gagal memeriksa nomor: %v", err)
 			details = append(details, BroadcastLogDetail{
-				Target:  targetStr,
-				Status:  "failed",
-				Message: errMsg,
+				Target:      targetStr,
+				Status:      "failed",
+				Message:     errMsg,
+				SentMessage: item.Message,
 			})
 			updateScheduleField(job.ID, func(s *Schedule) {
 				s.FailedCount++
@@ -492,9 +514,10 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 		if !isRegistered {
 			errMsg := "Nomor tidak terdaftar di WhatsApp"
 			details = append(details, BroadcastLogDetail{
-				Target:  targetStr,
-				Status:  "failed",
-				Message: errMsg,
+				Target:      targetStr,
+				Status:      "failed",
+				Message:     errMsg,
+				SentMessage: item.Message,
 			})
 			updateScheduleField(job.ID, func(s *Schedule) {
 				s.FailedCount++
@@ -507,9 +530,10 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 		err = sendSimpleMessage(ws, jid, item.Message)
 		if err != nil {
 			details = append(details, BroadcastLogDetail{
-				Target:  targetStr,
-				Status:  "failed",
-				Message: err.Error(),
+				Target:      targetStr,
+				Status:      "failed",
+				Message:     err.Error(),
+				SentMessage: item.Message,
 			})
 			updateScheduleField(job.ID, func(s *Schedule) {
 				s.FailedCount++
@@ -518,15 +542,19 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 			go sendFailedBroadcastAlert(payload.UserName, payload.SessionPhone, targetStr, err.Error())
 		} else {
 			details = append(details, BroadcastLogDetail{
-				Target:  targetStr,
-				Status:  "success",
-				Message: "Terkirim",
+				Target:      targetStr,
+				Status:      "success",
+				Message:     "Terkirim",
+				SentMessage: item.Message,
 			})
 			updateScheduleField(job.ID, func(s *Schedule) {
 				s.SentCount++
 			})
 			log.Printf("  ✅ Broadcast Terkirim ke %s\n", targetStr)
 		}
+
+		itemsProcessed++
+		lastProcessedIndex = i + 1
 
 		// Beri jeda acak (kecuali baris terakhir)
 		if i < len(payload.Items)-1 {
@@ -548,6 +576,22 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 					time.Sleep(time.Second)
 				}
 			}
+		}
+	}
+
+	// Tambahkan sisa item yang belum diproses ke details (status pending/skipped)
+	if lastProcessedIndex >= 0 && lastProcessedIndex < len(payload.Items) {
+		for _, item := range payload.Items[lastProcessedIndex:] {
+			statusMsg := "Dijadwalkan ulang ke hari berikutnya"
+			if disconnected {
+				statusMsg = "Tidak diproses (sesi terputus)"
+			}
+			details = append(details, BroadcastLogDetail{
+				Target:      item.Target,
+				Status:      "pending",
+				Message:     statusMsg,
+				SentMessage: item.Message,
+			})
 		}
 	}
 
@@ -573,6 +617,48 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 
 	if job.FailedCount > 0 {
 		sendDiscordWebhook(payload.UserName, payload.SessionPhone, newLog)
+	}
+
+	if len(payload.Items) > itemsProcessed {
+		remainingItems := payload.Items[itemsProcessed:]
+		
+		now := time.Now()
+		nextDay := time.Date(now.Year(), now.Month(), now.Day()+1, 5, 0, 0, 0, now.Location())
+		randomMinutes := rand.Intn(31) // 0 to 30 minutes
+		nextDay = nextDay.Add(time.Duration(randomMinutes) * time.Minute)
+
+		payloadWithConfig := map[string]interface{}{
+			"items":        remainingItems,
+			"minDelay":     payload.MinDelay,
+			"maxDelay":     payload.MaxDelay,
+			"userName":     payload.UserName,
+			"sessionPhone": payload.SessionPhone,
+		}
+
+		newSchedule := Schedule{
+			ID:            strconv.FormatInt(time.Now().UnixMilli(), 10),
+			ScheduleType:  "once",
+			TimeToProcess: nextDay.UnixMilli(),
+			Type:          "excel_broadcast",
+			Payload:       payloadWithConfig,
+			Status:        "pending",
+			CreatedAt:     time.Now().Format("2/1/2006 15:04:05"),
+			TotalTargets:  len(remainingItems),
+			SentCount:     0,
+			FailedCount:   0,
+			CurrentTarget: "Menunggu giliran besok...",
+			CurrentDelay:  "",
+		}
+
+		schedMu.Lock()
+		schedules = append(schedules, newSchedule)
+		saveSchedules(schedules)
+		schedMu.Unlock()
+		
+		log.Printf("📅 Sisa %d kontak akan dikirim besok jam %02d:%02d\n", len(remainingItems), nextDay.Hour(), nextDay.Minute())
+	} else {
+		// All items across all days have been sent
+		go sendBroadcastCompletionAlert(payload.UserName, payload.SessionPhone, job.SentCount, job.FailedCount)
 	}
 }
 

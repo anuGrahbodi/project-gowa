@@ -241,3 +241,63 @@ func sendFailedBroadcastAlert(userName string, userPhone string, target string, 
 		}
 	}
 }
+
+func sendBroadcastCompletionAlert(userName string, userPhone string, totalSent int, totalFailed int) {
+	// === 1. Discord Webhook ===
+	webhookUrl := strings.TrimSpace(os.Getenv("DISCORD_WEBHOOK_URL"))
+	if webhookUrl != "" {
+		payload := map[string]interface{}{
+			"content":    fmt.Sprintf("✅ **BROADCAST SELESAI** ✅\n\nSeluruh antrean pesan broadcast Excel telah selesai dikirim!"),
+			"username":   "WhatsApp Bot Monitor",
+			"avatar_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/512px-WhatsApp.svg.png",
+			"embeds": []map[string]interface{}{
+				{
+					"title":       "🎉 Broadcast Selesai",
+					"color":       3066993, // Green
+					"fields": []map[string]interface{}{
+						{"name": "Pengirim (User)", "value": userName, "inline": true},
+						{"name": "Nomor Sesi", "value": userPhone, "inline": true},
+					},
+					"footer":    map[string]string{"text": "Dikirim secara otomatis oleh WhatsApp Bot."},
+					"timestamp": time.Now().Format(time.RFC3339),
+				},
+			},
+		}
+		body, _ := json.Marshal(payload)
+		resp, err := http.Post(webhookUrl, "application/json", bytes.NewReader(body))
+		if err != nil {
+			log.Println("❌ Gagal mengirim Broadcast Completion alert ke Discord:", err)
+		} else {
+			resp.Body.Close()
+		}
+	}
+
+	// === 2. Email Alert ===
+	emailUser := strings.TrimSpace(os.Getenv("EMAIL_USER"))
+	emailPass := strings.TrimSpace(os.Getenv("EMAIL_PASS"))
+	if emailUser != "" && emailPass != "" {
+		subject := "✅ Broadcast Excel Selesai"
+		htmlBody := fmt.Sprintf(`
+			<div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+				<h2 style="color: #25d366; text-align: center;">Broadcast Telah Selesai</h2>
+				<hr>
+				<p>Pesan broadcast Excel dari akun <strong>%s</strong> (%s) telah selesai diproses sepenuhnya.</p>
+				<hr>
+				<p style="font-size: 12px; color: #888; text-align: center;">Dikirim secara otomatis oleh Sistem Bot WhatsApp.</p>
+			</div>
+		`, userName, userPhone)
+
+		msg := fmt.Sprintf("From: \"Bot System\" <%s>\r\n"+
+			"To: %s\r\n"+
+			"Subject: %s\r\n"+
+			"MIME-Version: 1.0\r\n"+
+			"Content-Type: text/html; charset=\"utf-8\"\r\n"+
+			"\r\n%s", emailUser, emailUser, subject, htmlBody)
+
+		auth := smtp.PlainAuth("", emailUser, emailPass, "smtp.gmail.com")
+		err := smtp.SendMail("smtp.gmail.com:587", auth, emailUser, []string{emailUser}, []byte(msg))
+		if err != nil {
+			log.Println("❌ Gagal mengirim Email Broadcast Completion:", err)
+		}
+	}
+}

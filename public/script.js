@@ -1090,6 +1090,18 @@ function populateExcelSelects(headers) {
     });
 }
 
+function toggleExcelRange() {
+    const mode = document.querySelector('input[name="excelSendLimit"]:checked').value;
+    document.getElementById('excelRangeTop').disabled = (mode !== 'top');
+    document.getElementById('excelRangeBottomStart').disabled = (mode !== 'bottom');
+    document.getElementById('excelRangeStart').disabled = (mode !== 'range');
+    document.getElementById('excelRangeEnd').disabled = (mode !== 'range');
+    
+    if (mode === 'top') document.getElementById('excelRangeTop').focus();
+    if (mode === 'bottom') document.getElementById('excelRangeBottomStart').focus();
+    if (mode === 'range') document.getElementById('excelRangeStart').focus();
+}
+
 async function sendExcelBroadcast() {
     const colPhone = document.getElementById('excelColPhone').value;
     const colMsg = document.getElementById('excelColMessage').value;
@@ -1104,31 +1116,46 @@ async function sendExcelBroadcast() {
         return;
     }
 
-    const payload = excelDataRaw.map(row => ({
+    const allPayload = excelDataRaw.map(row => ({
         target: String(row[colPhone] || '').trim(),
         message: String(row[colMsg] || '')
     })).filter(x => x.target && x.message);
 
-    if (payload.length === 0) {
+    if (allPayload.length === 0) {
         toast('Tidak ada baris yang valid (nomor/pesan kosong)', 'err');
         return;
     }
 
     const limitMode = document.querySelector('input[name="excelSendLimit"]:checked').value;
-    let limitCount = payload.length;
-    if (limitMode === 'custom') {
-        const customCount = parseInt(document.getElementById('excelSendCount').value, 10);
-        if (customCount > 0 && customCount < payload.length) {
-            limitCount = customCount;
+    let finalPayload = allPayload;
+
+    if (limitMode === 'top') {
+        const topN = parseInt(document.getElementById('excelRangeTop').value, 10);
+        if (!topN || topN < 1) { toast('Masukkan angka baris yang valid!', 'err'); return; }
+        finalPayload = allPayload.slice(0, topN);
+    } else if (limitMode === 'bottom') {
+        const startIdx = parseInt(document.getElementById('excelRangeBottomStart').value, 10);
+        if (!startIdx || startIdx < 1) { toast('Masukkan angka baris awal yang valid!', 'err'); return; }
+        finalPayload = allPayload.slice(startIdx - 1);
+    } else if (limitMode === 'range') {
+        const startIdx = parseInt(document.getElementById('excelRangeStart').value, 10);
+        const endIdx = parseInt(document.getElementById('excelRangeEnd').value, 10);
+        if (!startIdx || !endIdx || startIdx < 1 || endIdx < startIdx) {
+            toast('Masukkan rentang baris yang valid! (awal ≤ akhir)', 'err');
+            return;
         }
+        finalPayload = allPayload.slice(startIdx - 1, endIdx);
     }
 
-    const finalPayload = payload.slice(0, limitCount);
+    if (finalPayload.length === 0) {
+        toast('Tidak ada data dalam rentang yang dipilih!', 'err');
+        return;
+    }
 
     const minDelay = parseInt(document.getElementById('excelMinDelay').value, 10) || 246;
     const maxDelay = parseInt(document.getElementById('excelMaxDelay').value, 10) || 302;
 
-    if (!confirm(`Akan mengirim ${finalPayload.length} pesan broadcast dengan jeda ${minDelay}-${maxDelay} detik. Lanjutkan?`)) return;
+    if (!confirm(`Akan mengirim ${finalPayload.length} pesan broadcast (dari total ${allPayload.length} data) dengan jeda ${minDelay}-${maxDelay} detik. Lanjutkan?`)) return;
 
     const btn = document.getElementById('btnSendExcel');
     const progressText = document.getElementById('excelSendProgress');
@@ -1181,6 +1208,8 @@ async function fetchBroadcastLogs() {
         const r = await apiFetch('/api/broadcast-logs');
         const d = await r.json();
         
+        window.currentBroadcastLogs = d;
+
         if (!Array.isArray(d) || d.length === 0) {
             body.innerHTML = '<p class="hint">Belum ada riwayat broadcast.</p>';
             return;
@@ -1190,9 +1219,12 @@ async function fetchBroadcastLogs() {
         d.forEach(log => {
             html += `
             <div style="border:1px solid #ccc; border-radius:6px; padding:10px; margin-bottom:12px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:13px; flex-wrap:wrap; gap:6px;">
                     <strong>ID: ${log.id}</strong>
-                    <span style="color:#666;">${new Date(log.timestamp).toLocaleString('id-ID')}</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="color:#666;">${new Date(log.timestamp).toLocaleString('id-ID')}</span>
+                        <button class="btn btn-sm" style="background:#10b981; color:white; padding:3px 10px; font-size:12px; border:none; border-radius:4px; cursor:pointer;" onclick="downloadLogExcel('${log.id}')">📥 Download Excel</button>
+                    </div>
                 </div>
                 <div style="display:flex; gap:15px; margin-bottom:10px; font-size:14px;">
                     <span style="color:#0369a1; font-weight:600;">Total: ${log.total}</span>
@@ -1201,22 +1233,28 @@ async function fetchBroadcastLogs() {
                 </div>
                 <details>
                     <summary style="cursor:pointer; font-weight:600; font-size:13px; color:#555;">Lihat Detail Baris</summary>
-                    <div style="max-height:200px; overflow-y:auto; margin-top:8px; background:#f9f9f9; padding:8px; border-radius:4px;">
+                    <div style="max-height:250px; overflow-y:auto; margin-top:8px; background:#f9f9f9; padding:8px; border-radius:4px;">
                         <table style="width:100%; border-collapse:collapse; font-size:12px;">
                             <thead>
                                 <tr style="background:#eee;">
+                                    <th style="padding:4px; text-align:left;">No</th>
                                     <th style="padding:4px; text-align:left;">Nomor Tujuan</th>
+                                    <th style="padding:4px; text-align:left;">Pesan</th>
                                     <th style="padding:4px; text-align:left;">Status</th>
                                     <th style="padding:4px; text-align:left;">Keterangan</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${log.details.map(det => `
+                                ${log.details.map((det, idx) => `
                                 <tr>
+                                    <td style="padding:4px; border-bottom:1px solid #ddd;">${idx + 1}</td>
                                     <td style="padding:4px; border-bottom:1px solid #ddd;">${escHtml(det.target)}</td>
+                                    <td style="padding:4px; border-bottom:1px solid #ddd; max-width:250px; word-break:break-all; white-space:pre-wrap;">
+                                        ${escHtml((det.sentMessage || '').length > 80 ? (det.sentMessage || '').substring(0, 80) + '...' : (det.sentMessage || '-'))}
+                                    </td>
                                     <td style="padding:4px; border-bottom:1px solid #ddd;">
-                                        <span style="color:${det.status === 'success' ? '#25d366' : '#dc2626'}; font-weight:600;">
-                                            ${det.status === 'success' ? '✔ Sukses' : '❌ Gagal'}
+                                        <span style="color:${det.status === 'success' ? '#25d366' : det.status === 'pending' ? '#f59e0b' : det.status === 'skipped' ? '#9ca3af' : '#dc2626'}; font-weight:600;">
+                                            ${det.status === 'success' ? '✔ Sukses' : det.status === 'pending' ? '⏳ Pending' : det.status === 'skipped' ? '⏭ Dilewati' : '❌ Gagal'}
                                         </span>
                                     </td>
                                     <td style="padding:4px; border-bottom:1px solid #ddd; max-width:200px; word-break:break-all;">
@@ -1236,5 +1274,36 @@ async function fetchBroadcastLogs() {
     } catch (e) {
         body.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`;
     }
+}
+
+function downloadLogExcel(id) {
+    if (!window.currentBroadcastLogs) return;
+    const log = window.currentBroadcastLogs.find(x => x.id === id);
+    if (!log) return;
+
+    const rows = [['No', 'Nomor Tujuan', 'Pesan', 'Status Pengiriman']];
+    log.details.forEach((det, idx) => {
+        rows.push([
+            idx + 1,
+            det.target || '',
+            det.sentMessage || '',
+            det.status === 'success' ? 'Sukses' : det.status === 'pending' ? 'Pending - ' + (det.message || '') : det.status === 'skipped' ? 'Dilewati - ' + (det.message || '') : 'Gagal - ' + (det.message || '')
+        ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    
+    // Set column widths
+    ws['!cols'] = [
+        { wch: 5 },   // No
+        { wch: 18 },  // Nomor Tujuan
+        { wch: 50 },  // Pesan
+        { wch: 30 },  // Status Pengiriman
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Broadcast Log');
+    XLSX.writeFile(wb, `BroadcastLog_${log.id}.xlsx`);
+    toast('File Excel berhasil diunduh!', 'ok');
 }
 
