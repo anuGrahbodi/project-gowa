@@ -882,10 +882,12 @@ async function deleteSchedule(id) {
 
 let editingScheduleId = null;
 async function openEditSchedule(id) {
-    // Fetch latest schedules
-    const r = await apiFetch('/api/schedules');
-    const all = await r.json();
-    const s = all.find(x => x.id === id);
+    const r = await apiFetch('/api/schedules/' + id);
+    const s = await r.json();
+    if (!s || !s.id) {
+        alert('Jadwal tidak ditemukan.');
+        return;
+    }
     if (!s) { toast('Jadwal tidak ditemukan', 'err'); return; }
     editingScheduleId = id;
 

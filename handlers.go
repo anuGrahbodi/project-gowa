@@ -664,6 +664,54 @@ func handleDeleteTarget(w http.ResponseWriter, r *http.Request) {
 }
 
 // ===== Schedules Handlers =====
+
+// scheduleForAPI mengembalikan ringkasan antrean tanpa ribuan item Excel (mempercepat /api/schedules).
+func scheduleForAPI(s Schedule) Schedule {
+	if s.Type != "excel_broadcast" {
+		return s
+	}
+	out := s
+	out.Payload = excelPayloadSummary(s.Payload)
+	return out
+}
+
+func excelPayloadSummary(payload interface{}) map[string]interface{} {
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return map[string]interface{}{"itemCount": 0}
+	}
+	var raw map[string]interface{}
+	if json.Unmarshal(b, &raw) != nil {
+		return map[string]interface{}{"itemCount": 0}
+	}
+	items, _ := raw["items"].([]interface{})
+	summary := map[string]interface{}{
+		"minDelay":     raw["minDelay"],
+		"maxDelay":     raw["maxDelay"],
+		"userName":     raw["userName"],
+		"sessionPhone": raw["sessionPhone"],
+		"itemCount":    len(items),
+	}
+	if len(items) > 0 {
+		if first, ok := items[0].(map[string]interface{}); ok {
+			summary["items"] = []map[string]interface{}{{
+				"message": first["message"],
+				"target":  first["target"],
+			}}
+		}
+	} else {
+		summary["items"] = []interface{}{}
+	}
+	return summary
+}
+
+func stripExcelBroadcastPayload(s *Schedule) {
+	if s.Type != "excel_broadcast" {
+		return
+	}
+	s.Payload = excelPayloadSummary(s.Payload)
+}
+
 func handleGetSchedules(w http.ResponseWriter, r *http.Request) {
 	if isGuest(r) {
 		jsonResponse(w, 200, []interface{}{})
@@ -671,7 +719,11 @@ func handleGetSchedules(w http.ResponseWriter, r *http.Request) {
 	}
 	schedMu.RLock()
 	defer schedMu.RUnlock()
-	jsonResponse(w, 200, schedules)
+	out := make([]Schedule, len(schedules))
+	for i, s := range schedules {
+		out[i] = scheduleForAPI(s)
+	}
+	jsonResponse(w, 200, out)
 }
 
 func handlePostSchedule(w http.ResponseWriter, r *http.Request) {
@@ -728,6 +780,8 @@ func handleScheduleByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.Method {
+	case http.MethodGet:
+		handleGetScheduleByID(w, r, id)
 	case http.MethodDelete:
 		handleDeleteSchedule(w, r, id)
 	case http.MethodPut:
@@ -735,6 +789,22 @@ func handleScheduleByID(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
+}
+
+func handleGetScheduleByID(w http.ResponseWriter, r *http.Request, id string) {
+	if isGuest(r) {
+		jsonError(w, 403, "Mode tamu terbatas.")
+		return
+	}
+	schedMu.RLock()
+	defer schedMu.RUnlock()
+	for _, s := range schedules {
+		if s.ID == id {
+			jsonResponse(w, 200, s)
+			return
+		}
+	}
+	jsonError(w, 404, "Jadwal tidak ditemukan")
 }
 
 func handleDeleteSchedule(w http.ResponseWriter, r *http.Request, id string) {

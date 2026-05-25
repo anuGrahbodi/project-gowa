@@ -368,13 +368,15 @@ func scheduleProcessor() {
 	}
 }
 
-func updateScheduleField(id string, updater func(s *Schedule)) {
+func updateScheduleField(id string, updater func(s *Schedule), persist bool) {
 	schedMu.Lock()
 	defer schedMu.Unlock()
 	for i := range schedules {
 		if schedules[i].ID == id {
 			updater(&schedules[i])
-			saveSchedules(schedules)
+			if persist {
+				saveSchedules(schedules)
+			}
 			break
 		}
 	}
@@ -438,14 +440,15 @@ func processSchedules() {
 				updateScheduleField(j.ID, func(s *Schedule) {
 					s.Status = "pending"
 					s.LastRunDate = &todayStr
-				})
+				}, true)
 			} else {
 				if j.Type == "excel_broadcast" {
 					updateScheduleField(j.ID, func(s *Schedule) {
 						s.Status = "completed"
 						s.CurrentTarget = "Selesai"
 						s.CurrentDelay = ""
-					})
+						stripExcelBroadcastPayload(s)
+					}, true)
 				} else {
 					// Remove one-time schedule
 					schedMu.Lock()

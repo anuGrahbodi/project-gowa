@@ -454,7 +454,7 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 			updateScheduleField(job.ID, func(s *Schedule) {
 				s.CurrentTarget = "Selesai (Terputus)"
 				s.CurrentDelay = "Gagal: Sesi Terputus"
-			})
+			}, true)
 			lastProcessedIndex = i
 			disconnected = true
 			break
@@ -472,7 +472,7 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 
 		updateScheduleField(job.ID, func(s *Schedule) {
 			s.CurrentTarget = targetStr
-		})
+		}, true)
 
 		jid, err := types.ParseJID(targetStr + "@s.whatsapp.net")
 		if err != nil {
@@ -485,7 +485,7 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 			})
 			updateScheduleField(job.ID, func(s *Schedule) {
 				s.FailedCount++
-			})
+			}, true)
 			go sendFailedBroadcastAlert(payload.UserName, payload.SessionPhone, item.Target, errMsg)
 			continue
 		}
@@ -503,7 +503,7 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 			})
 			updateScheduleField(job.ID, func(s *Schedule) {
 				s.FailedCount++
-			})
+			}, true)
 			log.Printf("  ❌ Broadcast Gagal ke %s: %s\n", targetStr, errMsg)
 			go sendFailedBroadcastAlert(payload.UserName, payload.SessionPhone, targetStr, errMsg)
 			continue
@@ -521,7 +521,7 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 			})
 			updateScheduleField(job.ID, func(s *Schedule) {
 				s.FailedCount++
-			})
+			}, true)
 			log.Printf("  ❌ Broadcast Gagal ke %s: %s\n", targetStr, errMsg)
 			go sendFailedBroadcastAlert(payload.UserName, payload.SessionPhone, targetStr, errMsg)
 			continue
@@ -537,7 +537,7 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 			})
 			updateScheduleField(job.ID, func(s *Schedule) {
 				s.FailedCount++
-			})
+			}, true)
 			log.Printf("  ❌ Broadcast Gagal ke %s: %v\n", targetStr, err)
 			go sendFailedBroadcastAlert(payload.UserName, payload.SessionPhone, targetStr, err.Error())
 		} else {
@@ -549,7 +549,7 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 			})
 			updateScheduleField(job.ID, func(s *Schedule) {
 				s.SentCount++
-			})
+			}, true)
 			log.Printf("  ✅ Broadcast Terkirim ke %s\n", targetStr)
 		}
 
@@ -572,9 +572,12 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 				for d := delay; d > 0; d-- {
 					updateScheduleField(job.ID, func(s *Schedule) {
 						s.CurrentDelay = fmt.Sprintf("Menunggu %d detik...", d)
-					})
+					}, false)
 					time.Sleep(time.Second)
 				}
+				updateScheduleField(job.ID, func(s *Schedule) {
+					s.CurrentDelay = ""
+				}, true)
 			}
 		}
 	}
@@ -598,7 +601,7 @@ func executeExcelBroadcastSchedule(job *Schedule) {
 	updateScheduleField(job.ID, func(s *Schedule) {
 		s.CurrentTarget = "Selesai"
 		s.CurrentDelay = ""
-	})
+	}, true)
 
 	logID := fmt.Sprintf("BCAST-%d", time.Now().Unix())
 	newLog := BroadcastLog{
