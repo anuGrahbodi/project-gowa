@@ -881,6 +881,10 @@ async function deleteSchedule(id) {
 }
 
 let editingScheduleId = null;
+let editingScheduleType = null;
+let editCheckedTargets = {};
+let editPrivateRecipients = [];
+
 async function openEditSchedule(id) {
     const r = await apiFetch('/api/schedules/' + id);
     const s = await r.json();
@@ -888,21 +892,18 @@ async function openEditSchedule(id) {
         alert('Jadwal tidak ditemukan.');
         return;
     }
-    if (!s) { toast('Jadwal tidak ditemukan', 'err'); return; }
     editingScheduleId = id;
+    editingScheduleType = s.type;
 
-    // Populate message
-    let msg = s.type === 'grup' ? s.payload.message : (s.payload[0] ? s.payload[0].message : '');
+    let msg = s.type === 'grup' ? s.payload.message : (Array.isArray(s.payload) && s.payload[0] ? s.payload[0].message : '');
     document.getElementById('editSchedMsg').value = msg;
 
-    // Populate schedule type
     const isRecurring = s.scheduleType === 'recurring';
     document.querySelector(`input[name="editSchedType"][value="${s.scheduleType}"]`).checked = true;
     document.getElementById('editSchedOnceArea').style.display = isRecurring ? 'none' : 'block';
     document.getElementById('editSchedRecurringArea').style.display = isRecurring ? 'block' : 'none';
 
     if (!isRecurring && s.timeToProcess) {
-        // Format for datetime-local
         const dt = new Date(s.timeToProcess);
         const pad = n => String(n).padStart(2, '0');
         document.getElementById('editSchedDateTime').value = `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
@@ -914,9 +915,117 @@ async function openEditSchedule(id) {
         });
     }
 
+    await renderEditRecipients(s);
     document.getElementById('editScheduleOverlay').classList.add('show');
 }
-function closeEditSchedule() { document.getElementById('editScheduleOverlay').classList.remove('show'); editingScheduleId = null; }
+
+async function renderEditRecipients(s) {
+    const area = document.getElementById('editSchedRecipientsArea');
+    const grupArea = document.getElementById('editSchedGrupArea');
+    const pribadiArea = document.getElementById('editSchedPribadiArea');
+    if (s.type !== 'grup' && s.type !== 'pribadi') {
+        area.style.display = 'none';
+        return;
+    }
+    area.style.display = 'block';
+    grupArea.style.display = s.type === 'grup' ? 'block' : 'none';
+    pribadiArea.style.display = s.type === 'pribadi' ? 'block' : 'none';
+
+    if (s.type === 'grup') {
+        if (targetsList.length === 0) await fetchTargets();
+        editCheckedTargets = {};
+        const selected = new Set((s.payload.selectedTargets || []).map(Number));
+        targetsList.forEach((_, i) => {
+            editCheckedTargets[i] = selected.has(i);
+        });
+        renderEditTargetChips();
+    } else {
+        editPrivateRecipients = (Array.isArray(s.payload) ? s.payload : []).map(p => ({
+            target: String(p.target || ''),
+            message: String(p.message || ''),
+            checked: true
+        }));
+        renderEditPrivateRecipients();
+    }
+}
+
+function renderEditTargetChips() {
+    const box = document.getElementById('editSchedTargetChips');
+    if (targetsList.length === 0) {
+        box.innerHTML = '<span class="no-targets">Belum ada target. Tambahkan di halaman utama.</span>';
+        return;
+    }
+    box.innerHTML = '';
+    targetsList.forEach((t, i) => {
+        const isGroup = t.id.endsWith('@g.us');
+        const isChecked = editCheckedTargets[i] !== false;
+        const chip = document.createElement('span');
+        chip.className = 'chip' + (isGroup ? ' chip-group' : '') + (isChecked ? '' : ' unchecked');
+        chip.innerHTML = '<input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="toggleEditTarget(' + i + ', this.checked)">'
+            + '<span class="chip-label">' + escHtml(t.label) + '</span>'
+            + '<span class="chip-id">' + escHtml(t.id) + '</span>';
+        box.appendChild(chip);
+    });
+    const allChecked = targetsList.every((_, i) => editCheckedTargets[i] !== false);
+    document.getElementById('editSelectAllTargets').checked = allChecked;
+}
+
+function toggleEditTarget(index, val) {
+    editCheckedTargets[index] = val;
+    renderEditTargetChips();
+}
+function toggleEditSelectAll() {
+    const val = document.getElementById('editSelectAllTargets').checked;
+    targetsList.forEach((_, i) => { editCheckedTargets[i] = val; });
+    renderEditTargetChips();
+}
+
+function renderEditPrivateRecipients() {
+    const tbody = document.getElementById('editSchedPrivateBody');
+    tbody.innerHTML = '';
+    editPrivateRecipients.forEach((p, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td><input type="checkbox" class="edit-priv-check" data-idx="' + i + '" ' + (p.checked ? 'checked' : '') + ' onchange="toggleEditPrivateRecipient(' + i + ', this.checked)"></td>'
+            + '<td>' + escHtml(p.target) + '</td>'
+            + '<td><button type="button" class="btn btn-red btn-sm" onclick="removeEditPrivateRecipient(' + i + ')">✕</button></td>';
+        tbody.appendChild(tr);
+    });
+    const allChecked = editPrivateRecipients.length > 0 && editPrivateRecipients.every(p => p.checked);
+    document.getElementById('editSelectAllPrivate').checked = allChecked;
+}
+
+function toggleEditPrivateRecipient(index, val) {
+    if (editPrivateRecipients[index]) editPrivateRecipients[index].checked = val;
+    renderEditPrivateRecipients();
+}
+function toggleEditSelectAllPrivate() {
+    const val = document.getElementById('editSelectAllPrivate').checked;
+    editPrivateRecipients.forEach(p => { p.checked = val; });
+    renderEditPrivateRecipients();
+}
+function removeEditPrivateRecipient(index) {
+    editPrivateRecipients.splice(index, 1);
+    renderEditPrivateRecipients();
+}
+function addEditPrivateRecipient() {
+    const input = document.getElementById('editSchedAddPhone');
+    const raw = (input.value || '').trim();
+    if (!raw) { toast('Masukkan nomor!', 'err'); return; }
+    const exists = editPrivateRecipients.some(p => normalizeNumber(p.target) === normalizeNumber(raw));
+    if (exists) { toast('Nomor sudah ada di daftar.', 'err'); return; }
+    const msg = document.getElementById('editSchedMsg').value;
+    editPrivateRecipients.push({ target: raw, message: msg, checked: true });
+    input.value = '';
+    renderEditPrivateRecipients();
+}
+
+function closeEditSchedule() {
+    document.getElementById('editScheduleOverlay').classList.remove('show');
+    editingScheduleId = null;
+    editingScheduleType = null;
+    editCheckedTargets = {};
+    editPrivateRecipients = [];
+}
 function toggleEditScheduleType() {
     const isRecurring = document.querySelector('input[name="editSchedType"][value="recurring"]').checked;
     document.getElementById('editSchedOnceArea').style.display = isRecurring ? 'none' : 'block';
@@ -928,6 +1037,21 @@ async function saveEditSchedule() {
     const isRecurring = document.querySelector('input[name="editSchedType"][value="recurring"]').checked;
     const scheduleType = isRecurring ? 'recurring' : 'once';
     let body = { message, scheduleType };
+
+    if (editingScheduleType === 'grup') {
+        const selectedIndices = [];
+        targetsList.forEach((_, i) => { if (editCheckedTargets[i] !== false) selectedIndices.push(i); });
+        if (selectedIndices.length === 0) { toast('Pilih minimal satu penerima!', 'err'); return; }
+        body.selectedTargets = selectedIndices;
+    } else if (editingScheduleType === 'pribadi') {
+        const selected = editPrivateRecipients.filter(p => p.checked);
+        if (selected.length === 0) { toast('Pilih minimal satu penerima!', 'err'); return; }
+        body.privatePayload = selected.map(p => ({
+            target: p.target,
+            message: p.message || message
+        }));
+    }
+
     if (!isRecurring) {
         const timeVal = document.getElementById('editSchedDateTime').value;
         if (!timeVal) { toast('Pilih waktu!', 'err'); return; }

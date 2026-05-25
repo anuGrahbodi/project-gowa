@@ -831,11 +831,17 @@ func handleUpdateSchedule(w http.ResponseWriter, r *http.Request, id string) {
 		return
 	}
 	var body struct {
-		Message      *string  `json:"message,omitempty"`
-		ScheduleType string   `json:"scheduleType"`
-		Time         int64    `json:"time"`
-		CronDays     []string `json:"cronDays"`
-		CronTime     string   `json:"cronTime"`
+		Message         *string `json:"message,omitempty"`
+		ScheduleType    string  `json:"scheduleType"`
+		Time            int64   `json:"time"`
+		CronDays        []string `json:"cronDays"`
+		CronTime        string  `json:"cronTime"`
+		SelectedTargets []int   `json:"selectedTargets,omitempty"`
+		PrivatePayload  []struct {
+			Target  string `json:"target"`
+			Message string `json:"message"`
+		} `json:"privatePayload,omitempty"`
+		HideTag *bool `json:"hideTag,omitempty"`
 	}
 	if err := parseBody(r, &body); err != nil {
 		jsonError(w, 400, "Bad request")
@@ -859,15 +865,36 @@ func handleUpdateSchedule(w http.ResponseWriter, r *http.Request, id string) {
 
 	s := &schedules[idx]
 
-	// Update message in payload if provided
-	if body.Message != nil {
-		if s.Type == "grup" {
-			payloadBytes, _ := json.Marshal(s.Payload)
-			var p map[string]interface{}
-			json.Unmarshal(payloadBytes, &p)
+	if s.Type == "grup" {
+		payloadBytes, _ := json.Marshal(s.Payload)
+		var p map[string]interface{}
+		json.Unmarshal(payloadBytes, &p)
+
+		if body.Message != nil {
 			p["message"] = *body.Message
-			s.Payload = p
-		} else if s.Type == "pribadi" {
+		}
+		if body.SelectedTargets != nil {
+			p["selectedTargets"] = body.SelectedTargets
+		}
+		if body.HideTag != nil {
+			p["hideTag"] = *body.HideTag
+		}
+		s.Payload = p
+	} else if s.Type == "pribadi" {
+		if len(body.PrivatePayload) > 0 {
+			arr := make([]map[string]interface{}, len(body.PrivatePayload))
+			for i, item := range body.PrivatePayload {
+				msg := item.Message
+				if body.Message != nil {
+					msg = *body.Message
+				}
+				arr[i] = map[string]interface{}{
+					"target":  item.Target,
+					"message": msg,
+				}
+			}
+			s.Payload = arr
+		} else if body.Message != nil {
 			payloadBytes, _ := json.Marshal(s.Payload)
 			var arr []map[string]interface{}
 			json.Unmarshal(payloadBytes, &arr)
@@ -876,6 +903,8 @@ func handleUpdateSchedule(w http.ResponseWriter, r *http.Request, id string) {
 			}
 			s.Payload = arr
 		}
+	} else if body.Message != nil {
+		// excel_broadcast / lain: hanya pesan jika didukung nanti
 	}
 
 	if body.ScheduleType != "" {

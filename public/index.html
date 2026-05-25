@@ -395,11 +395,35 @@
 
     <!-- Modal: Edit Schedule -->
     <div class="overlay" id="editScheduleOverlay" onclick="if(event.target===this)closeEditSchedule()">
-        <div class="modal" style="max-width:520px;">
+        <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto;">
             <button class="modal-x" onclick="closeEditSchedule()">✕</button>
             <h3>✏️ Edit Jadwal Pesan</h3>
             <label style="font-weight:600;font-size:14px;display:block;margin-bottom:6px;">Pesan:</label>
             <textarea id="editSchedMsg" style="width:100%;min-height:100px;"></textarea>
+
+            <div id="editSchedRecipientsArea" style="display:none;margin-top:14px;">
+                <label style="font-weight:600;font-size:14px;display:block;margin-bottom:6px;">Penerima:</label>
+                <div id="editSchedGrupArea" style="display:none;">
+                    <p class="hint" style="margin-bottom:6px;">Centang grup/nomor yang akan menerima pesan terjadwal.</p>
+                    <div class="select-all-row" style="display:flex;margin-bottom:6px;">
+                        <label><input type="checkbox" id="editSelectAllTargets" onchange="toggleEditSelectAll()" checked> Pilih Semua</label>
+                    </div>
+                    <div class="chips" id="editSchedTargetChips" style="max-height:160px;overflow-y:auto;"></div>
+                </div>
+                <div id="editSchedPribadiArea" style="display:none;">
+                    <p class="hint" style="margin-bottom:6px;">Centang nomor yang akan menerima. Hapus atau tambah penerima di bawah.</p>
+                    <div class="members-table-wrap" style="max-height:200px;overflow-y:auto;margin-bottom:8px;">
+                        <table>
+                            <thead><tr><th style="width:36px;"><input type="checkbox" id="editSelectAllPrivate" onchange="toggleEditSelectAllPrivate()" checked></th><th>Nomor</th><th style="width:50px;"></th></tr></thead>
+                            <tbody id="editSchedPrivateBody"></tbody>
+                        </table>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <input type="text" id="editSchedAddPhone" placeholder="Nomor WA (08...)" style="flex:1;min-width:140px;padding:8px;border-radius:6px;border:1px solid #ccc;" />
+                        <button type="button" class="btn btn-green btn-sm" onclick="addEditPrivateRecipient()">＋ Tambah</button>
+                    </div>
+                </div>
+            </div>
 
             <label style="font-weight:600;font-size:14px;display:block;margin:12px 0 6px;">Tipe Jadwal:</label>
             <div style="display:flex;gap:20px;margin-bottom:10px;">
