@@ -172,7 +172,10 @@ function toggleSelectAll() {
     renderTargets(); updateSendInfo();
 }
 function updateSendInfo() {
-    const selected = targetsList.filter((_, i) => checkedTargets[i] !== false);
+    const isPrivate = document.querySelector('input[name="sendMode"][value="pribadi"]').checked;
+    const selected = isPrivate
+        ? targetsList.filter((_, i) => checkedTargets[i] !== false)
+        : targetsList.filter((t, i) => checkedTargets[i] !== false && t.id.endsWith('@g.us'));
     document.getElementById('sendInfo').textContent = selected.length > 0
         ? 'Akan dikirim ke ' + selected.length + ' target'
         : '⚠️ Tidak ada target yang dipilih';
@@ -556,8 +559,10 @@ async function sendGroupMsg() {
         msg += '\n\n```This number does not respond to messages. Please contact Anugrah (62 822 7743 1128) or another admin instead.```';
     }
     const selectedIndices = [];
-    targetsList.forEach((_, i) => { if (checkedTargets[i] !== false) selectedIndices.push(i); });
-    if (selectedIndices.length === 0) { toast('Tidak ada target yang dicentang', 'err'); return; }
+    targetsList.forEach((t, i) => {
+        if (checkedTargets[i] !== false && t.id.endsWith('@g.us')) selectedIndices.push(i);
+    });
+    if (selectedIndices.length === 0) { toast('Tidak ada target grup (@g.us) yang dicentang', 'err'); return; }
     btn.disabled = true; btn.textContent = '⏳ Mengirim...';
     try {
         const hideTag = document.getElementById('hideTagCheck').checked;

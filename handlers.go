@@ -964,8 +964,17 @@ func handleSendGroup(w http.ResponseWriter, r *http.Request) {
 	}
 	targetsMu.RUnlock()
 
+	// Group send must only target WhatsApp groups (@g.us).
+	filteredTargets := make([]Target, 0, len(sendTargets))
+	for _, t := range sendTargets {
+		if strings.HasSuffix(t.ID, "@g.us") {
+			filteredTargets = append(filteredTargets, t)
+		}
+	}
+	sendTargets = filteredTargets
+
 	if len(sendTargets) == 0 {
-		jsonError(w, 400, "Tidak ada target yang dipilih.")
+		jsonError(w, 400, "Tidak ada target grup (@g.us) yang dipilih.")
 		return
 	}
 
